@@ -496,29 +496,18 @@ export default class SseEditor3d extends React.Component {
         this.onMsg("rgb-toggle", () => this.toggleRgbDisplay());
 
         this.onMsg("setCameraView", (image => {
-            // TODO - aggiungere w e h a data
-            //        bundler non ha ppx e ppy..sarebbe meglio averli?
+
             const data = image.data;
 
             var projection = new THREE.Matrix4();
 
-            var w = 3072;
-            var h = 2048;
-            
-            // var loader = new THREE.TextureLoader();
-            // var texture = loader.load("/file" + image.url, function ( tex ) {
-            //     // tex and texture are the same in this example, but that might not always be the case
-            //     w = tex.image.width;
-            //     h = tex.image.height;
-            // });
-
-            var ppx = w/2;
-            var ppy = h/2;
+            var ppx = image.width / 2.0;
+            var ppy = image.height / 2.0;
                 
             projection.set(
-                2.0 * data.focal / w, 0, 0, 0, 
-                0, 2.0 * data.focal / h, 0, 0, 
-                1.0 - 2.0 * ppx / w, -1.0 + (2.0 * ppy + 2.0) / h, (0.01 + 10000) / (0.01 - 10000), -1.0,
+                2.0 * data.focal / image.width, 0, 0, 0, 
+                0, 2.0 * data.focal / image.height, 0, 0, 
+                1.0 - 2.0 * ppx / image.width, -1.0 + (2.0 * ppy + 2.0) / image.height, (0.01 + 10000) / (0.01 - 10000), -1.0,
                 0, 0, 2.0 * 0.01 * 10000 / (0.01 - 10000), 0);
             
             projection.transpose();            

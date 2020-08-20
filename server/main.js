@@ -5,6 +5,7 @@ import url from "url";
 import ColorScheme from "color-scheme";
 import config from "./config";
 import * as THREE from 'three';
+import imageSize from "image-size"
 
 let {classes} = config;
 
@@ -194,10 +195,14 @@ Meteor.methods({
 
         const getImageDesc = path => {
             var index = parseInt(parse(basename(decodeURIComponent(path))).name);
+            var url = (folderSlash ? folderSlash : "") + "images/" + basename(path)
+            var dimensions = imageSize(join(config.imagesFolder, url));            
             return {
                 name: basename(path),
                 data: data[index],
-                url: (folderSlash ? folderSlash : "") + "images/" + basename(path)
+                url: url,
+                width: dimensions.width,
+                height: dimensions.height
             };
         };
 
