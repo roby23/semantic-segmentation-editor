@@ -494,6 +494,54 @@ export default class SseEditor3d extends React.Component {
         }));
 
         this.onMsg("rgb-toggle", () => this.toggleRgbDisplay());
+
+        this.onMsg("setCameraView", (image => {
+            // TODO - aggiungere w e h a data
+            //        bundler non ha ppx e ppy..sarebbe meglio averli?
+            const data = image.data;
+
+            var projection = new THREE.Matrix4();
+
+            var w = 3072;
+            var h = 2048;
+            
+            // var loader = new THREE.TextureLoader();
+            // var texture = loader.load("/file" + image.url, function ( tex ) {
+            //     // tex and texture are the same in this example, but that might not always be the case
+            //     w = tex.image.width;
+            //     h = tex.image.height;
+            // });
+
+            var ppx = w/2;
+            var ppy = h/2;
+                
+            projection.set(
+                2.0 * data.focal / w, 0, 0, 0, 
+                0, 2.0 * data.focal / h, 0, 0, 
+                1.0 - 2.0 * ppx / w, -1.0 + (2.0 * ppy + 2.0) / h, (0.01 + 10000) / (0.01 - 10000), -1.0,
+                0, 0, 2.0 * 0.01 * 10000 / (0.01 - 10000), 0);
+            
+            projection.transpose();            
+
+            var cv2gl = new THREE.Matrix4();
+            
+            cv2gl.set(
+                1, 0, 0, 0,
+                0, -1, 0, 0,
+                0, 0, -1, 0,
+                0, 0, 0, 1
+            );
+
+            var view = cv2gl.multiply(data.R);            
+                        
+            view.elements[12] += view.elements[0] * (data.T.x) + view.elements[4] * (data.T.y) + view.elements[8] * (data.T.z);
+            view.elements[13] += view.elements[1] * (data.T.x) + view.elements[5] * (data.T.y) + view.elements[9] * (data.T.z);
+            view.elements[14] += view.elements[2] * (data.T.x) + view.elements[6] * (data.T.y) + view.elements[10] * (data.T.z);
+            view.elements[15] += view.elements[3] * (data.T.x) + view.elements[7] * (data.T.y) + view.elements[11] * (data.T.z);            
+
+            this.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 10000 );				
+            this.camera.projectionMatrix.copy(projection.multiply(view));
+        }));
     }
 
     componentWillUnmount(){

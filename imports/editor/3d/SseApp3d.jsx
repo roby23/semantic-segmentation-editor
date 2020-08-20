@@ -17,6 +17,7 @@ import SseEditor3d from "./SseEditor3d";
 import SseToolbar3d from "./SseToolbar3d";
 import SseCameraToolbar from "./SseCameraToolbar";
 import SseObjectToolbar from "./SseObjectToolbar";
+import SseImagesPreview from "./SseImagesPreview";
 import tippy from "tippy.js";
 import SseTooltips3d from "./SseTooltips3d";
 
@@ -68,6 +69,7 @@ export default class SseApp3d extends React.Component {
                                     classesSets={this.classesSets
                                     }
                                 />
+                                <SseImagesPreview imageUrl={this.props.imageUrl} />
                                 <div
                                     className="vflex grow relative">
                                     <div
