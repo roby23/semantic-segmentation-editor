@@ -18,6 +18,7 @@ import PolyBool from "polybooljs";
 import lineclip from "lineclip";
 import SseMsg from "../../common/SseMsg";
 import $ from "jquery";
+import { Tree } from 'mdi-material-ui';
 
 const PI = Math.PI;
 const DOUBLEPI = PI * 2;
@@ -527,9 +528,22 @@ export default class SseEditor3d extends React.Component {
             view.elements[13] += view.elements[1] * (data.T.x) + view.elements[5] * (data.T.y) + view.elements[9] * (data.T.z);
             view.elements[14] += view.elements[2] * (data.T.x) + view.elements[6] * (data.T.y) + view.elements[10] * (data.T.z);
             view.elements[15] += view.elements[3] * (data.T.x) + view.elements[7] * (data.T.y) + view.elements[11] * (data.T.z);            
+            
+            var fov = 2 * Math.atan(1/projection.elements[5]) * 180 / PI;
+            var near = projection.elements[14] / (projection.elements[10] - 1.0);
+            var far = projection.elements[14] / (projection.elements[10] + 1.0);
 
-            this.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 10000 );				
-            this.camera.projectionMatrix.copy(projection.multiply(view));
+            var p = new THREE.Vector3();
+            var r = new THREE.Quaternion();
+            var s = new THREE.Vector3();
+            view.decompose(p, r, s);    
+            
+            this.camera = new THREE.PerspectiveCamera(fov, image.width / image.height, 0.01, 10000);	
+            this.camera.position.copy(new THREE.Vector3(-data.T.x, -data.T.y, -data.T.z));
+            this.camera.quaternion.copy(r.inverse());
+            this.camera.updateProjectionMatrix();   
+            //this.camera.projectionMatrix.copy(projection.multiply(view));
+                                
         }));
     }
 
@@ -573,6 +587,7 @@ export default class SseEditor3d extends React.Component {
         scene.background = new THREE.Color(0x111111);
 
         const camera = this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
+        console.log(this.camera);
 
         scene.add(camera);
 
@@ -720,6 +735,7 @@ export default class SseEditor3d extends React.Component {
     */
 
     moveCamera(eye, target) {
+        console.log("moving");
         this.orbiting = true;
         const orientedRange = (a0, a1) => {
             const da = (a1 - a0) % DOUBLEPI;
@@ -1776,10 +1792,11 @@ export default class SseEditor3d extends React.Component {
         this.invalidatePixelProjection();
     }
 
-    mouseDown(ev) {
+    mouseDown(ev) {        
         if (ev.button == 1 || this.ctrlDown) {
             this.changeTarget(ev);
         } else {
+            console.log("mousedown");
             this.cameraTween.stop();
             this.mouse.down = ev.which;
             this.mouse.downX = ev.pageX;
