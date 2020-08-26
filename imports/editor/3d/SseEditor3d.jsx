@@ -308,7 +308,7 @@ export default class SseEditor3d extends React.Component {
     unselectObject() {
         this.selectedObject = undefined;
         this.sendMsg("object-select", {value: undefined});
-        this.displayAll();
+        //this.displayAll();
     }
 
     addObjectPoints() {
@@ -900,7 +900,7 @@ export default class SseEditor3d extends React.Component {
                     if (this.selection.size > 0) {
                         this.clearSelection();
                     } else {
-                        this.displayAll();
+                        //this.displayAll();
                     }
                 }
             }
