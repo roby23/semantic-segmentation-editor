@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/Hitachi-Automotive-And-Industry-Lab/semantic-segmentation-editor",
   "scripts": {
-    "debug": "meteor --settings settings.json",
+    "debug": "meteor --inspect-brk=9229 --settings settings.json",
     "start": "meteor --settings settings.json --production"
   },
   "dependencies": {

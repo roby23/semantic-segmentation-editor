@@ -539,11 +539,10 @@ export default class SseEditor3d extends React.Component {
             view.decompose(p, r, s);    
             
             this.camera = new THREE.PerspectiveCamera(fov, image.width / image.height, 0.01, 10000);	
-            this.camera.position.copy(new THREE.Vector3(-data.T.x, -data.T.y, -data.T.z));
-            this.camera.quaternion.copy(r.inverse());
+            this.camera.position.set(-data.T.x, -data.T.y, -data.T.z);
+            this.camera.setRotationFromQuaternion(r.inverse());
             this.camera.updateProjectionMatrix();   
-            //this.camera.projectionMatrix.copy(projection.multiply(view));
-                                
+            this.orbiting = true;
         }));
     }
 
@@ -587,7 +586,6 @@ export default class SseEditor3d extends React.Component {
         scene.background = new THREE.Color(0x111111);
 
         const camera = this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
-        console.log(this.camera);
 
         scene.add(camera);
 
@@ -735,7 +733,6 @@ export default class SseEditor3d extends React.Component {
     */
 
     moveCamera(eye, target) {
-        console.log("moving");
         this.orbiting = true;
         const orientedRange = (a0, a1) => {
             const da = (a1 - a0) % DOUBLEPI;
@@ -1796,7 +1793,6 @@ export default class SseEditor3d extends React.Component {
         if (ev.button == 1 || this.ctrlDown) {
             this.changeTarget(ev);
         } else {
-            console.log("mousedown");
             this.cameraTween.stop();
             this.mouse.down = ev.which;
             this.mouse.downX = ev.pageX;
@@ -1820,10 +1816,9 @@ export default class SseEditor3d extends React.Component {
             this.setSelectionFeedback();
         }
 
-        if (this.mouse.dragged < 4 && this.mouseTargetIndex == undefined
-            && (ev.button != 1 && !this.ctrlDown)) {
+        if (this.mouse.dragged < 4 && this.mouseTargetIndex == undefined && (ev.button != 1 && !this.ctrlDown)) {
             this.clearSelection();
-            this.displayAll();
+            //this.displayAll();
         }
 
         if (this.mouse.dragged < 4 && this.pendingOrientationArrow) {
