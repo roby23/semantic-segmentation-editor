@@ -52,6 +52,8 @@ export default class SseEditor3d extends React.Component {
         this.pixelProjection = new Map();
         this.highlightedIndex = undefined;
         this.dataManager = new SseDataManager();
+        this.savedCamera = undefined;
+        this.savedOrbiter = undefined;
         
         this.tweenDuration = 500;
 
@@ -477,12 +479,16 @@ export default class SseEditor3d extends React.Component {
             this.removeObjectPoints();
         });
 
-
         this.onMsg("orientation-change", () => {
             this.startPointcloudOrientation();
         });
         this.onMsg("orientation-abort", () => {
             this.stopPointcloudOrientation();
+        });
+
+        this.onMsg("image-view-abort", () => {
+            this.sendMsg("show-camera-controls");
+            this.centerView();
         });
 
         this.onMsg("tagsChanged", () => this.saveAll());
@@ -497,6 +503,15 @@ export default class SseEditor3d extends React.Component {
         this.onMsg("rgb-toggle", () => this.toggleRgbDisplay());
 
         this.onMsg("setCameraView", (image => {
+
+            this.sendMsg("hide-camera-controls");
+            this.sendMsg("alert", {
+                autoHide: false,
+                message: "Point cloud image view mode",
+                buttonText: "CANCEL",
+                closeMessage: "image-view-abort",
+                forceCloseMessage: "image-view-close"
+            });
 
             const data = image.data;
 
@@ -527,7 +542,7 @@ export default class SseEditor3d extends React.Component {
             view.elements[12] += view.elements[0] * (data.T.x) + view.elements[4] * (data.T.y) + view.elements[8] * (data.T.z);
             view.elements[13] += view.elements[1] * (data.T.x) + view.elements[5] * (data.T.y) + view.elements[9] * (data.T.z);
             view.elements[14] += view.elements[2] * (data.T.x) + view.elements[6] * (data.T.y) + view.elements[10] * (data.T.z);
-            view.elements[15] += view.elements[3] * (data.T.x) + view.elements[7] * (data.T.y) + view.elements[11] * (data.T.z);            
+            //view.elements[15] += view.elements[3] * (data.T.x) + view.elements[7] * (data.T.y) + view.elements[11] * (data.T.z);            
             
             var fov = 2 * Math.atan(1/projection.elements[5]) * 180 / PI;
             var near = projection.elements[14] / (projection.elements[10] - 1.0);
@@ -543,6 +558,15 @@ export default class SseEditor3d extends React.Component {
             this.camera.setRotationFromQuaternion(r.inverse());
             this.camera.updateProjectionMatrix();   
             this.orbiting = true;
+            
+            // var direction = new THREE.Vector3(0, 0, 1);
+            // var eye = new THREE.Vector3(-p.x, -p.y, -p.z);
+            // var target = new THREE.Vector3(-p.x, -p.y, -p.z);
+
+            // var rot = new THREE.Matrix3();
+            // rot.setFromMatrix4(data.R);            
+            // target.add(direction.applyMatrix3(rot.transpose()));            
+            // this.moveCamera(eye, target);            
         }));
     }
 
@@ -585,9 +609,11 @@ export default class SseEditor3d extends React.Component {
 
         scene.background = new THREE.Color(0x111111);
 
-        const camera = this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
+        const camera = this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 10000);
 
         scene.add(camera);
+
+        this.savedCamera = camera;
 
         const rendererAttrs = {
             antialias: true,
@@ -630,6 +656,8 @@ export default class SseEditor3d extends React.Component {
         this.orbiter.addEventListener("end", this.orbiterEnd.bind(this), false);
 
         this.frustum = new THREE.Frustum();
+
+        this.savedOrbiter = this.orbiter;
     }
 
     grayIndex(idx) {
@@ -664,6 +692,9 @@ export default class SseEditor3d extends React.Component {
     }
 
     centerView() {
+        this.camera = this.savedCamera;
+        this.orbiter = this.savedOrbiter;
+        
         this.fitView(this.visibleIndices);
     }
 
@@ -732,7 +763,7 @@ export default class SseEditor3d extends React.Component {
     }
     */
 
-    moveCamera(eye, target) {
+    moveCamera(eye, target) {        
         this.orbiting = true;
         const orientedRange = (a0, a1) => {
             const da = (a1 - a0) % DOUBLEPI;

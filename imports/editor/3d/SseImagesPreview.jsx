@@ -28,8 +28,8 @@ export default class SseImagesPreview extends SseToolbar {
         return (    
             <div className="sse-class-chooser vflex no-shrink scroller">
                 <div className="hflex wrap w100 h100">
-                {this.state.data.images.map((image) =>
-                    (<div onClick={() => { this.sendMsg('setCameraView', image); }}>                    
+                {this.state.data.images.map((image, idx) =>
+                    (<div onClick={() => { this.sendMsg('setCameraView', image); }} key={idx}>                    
                         <SseImageThumbnail image={image}/>
                     </div>)
                 )}
