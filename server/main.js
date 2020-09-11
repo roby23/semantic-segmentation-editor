@@ -1,9 +1,11 @@
 import {Meteor} from 'meteor/meteor';
 import {createWriteStream, lstatSync, readdirSync, readFile, readFileSync, existsSync} from "fs";
-import {basename, extname, join} from "path";
+import {basename, extname, join, dirname, parse} from "path";
 import url from "url";
 import ColorScheme from "color-scheme";
 import config from "./config";
+import * as THREE from 'three';
+import imageSize from "image-size"
 
 let {classes} = config;
 
@@ -128,6 +130,93 @@ Meteor.methods({
         if (pageIndex > 0) {
             res.previousPage = `/browse/${pageIndex - 1}/${pageLength}/` + (encodeURIComponent(folder) || "");
         }
+
+        return res;
+    },
+
+    'cloudData'(path) {
+                
+        var m = THREE.Matrix4();
+
+        const imagesData = path => {
+            var bundlerFileName = parse(basename(decodeURIComponent(path))).name + ".out";
+            var bundlerFilePath = join(config.imagesFolder, dirname(decodeURIComponent(path)), bundlerFileName); 
+
+            var lines = readFileSync(bundlerFilePath, 'utf8').toString().split("\n");
+
+            var imagesCount = lines[1].split(' ')[0];
+            
+            var res = [];
+
+            for(i = 2; i < imagesCount * 5; i += 5) {
+                var focal = lines[i].split(' ')[0];
+
+                var M3 = new THREE.Matrix3();
+                var M4 = new THREE.Matrix4();
+                var D = new THREE.Matrix4();
+    
+                M3.set( 
+                    lines[i+1].split(' ')[0], lines[i+1].split(' ')[1], lines[i+1].split(' ')[2],
+                    lines[i+2].split(' ')[0], lines[i+2].split(' ')[1], lines[i+2].split(' ')[2],
+                    lines[i+3].split(' ')[0], lines[i+3].split(' ')[1], lines[i+3].split(' ')[2]
+                );
+
+                M4.set( 
+                    lines[i+1].split(' ')[0], lines[i+1].split(' ')[1], lines[i+1].split(' ')[2], 0,
+                    lines[i+2].split(' ')[0], lines[i+2].split(' ')[1], lines[i+2].split(' ')[2], 0,
+                    lines[i+3].split(' ')[0], lines[i+3].split(' ')[1], lines[i+3].split(' ')[2], 0,
+                    0, 0, 0, 1 );
+    
+                var T = new THREE.Vector3(lines[i+4].split(' ')[0], lines[i+4].split(' ')[1], lines[i+4].split(' ')[2]).applyMatrix3(M3.transpose());
+                    
+                D.identity();
+                D.makeScale(1, -1, -1);            
+    
+                var R = D.multiply(M4);          
+
+                res.push({focal: focal, R: R, T: T});
+            }
+
+            return res;
+        };
+        const isImage = source => {
+            const stat = lstatSync(source);
+            return (stat.isFile() || stat.isSymbolicLink()) &&
+                (
+                    extname(source).toLowerCase() == ".bmp" ||
+                    extname(source).toLowerCase() == ".jpeg" ||
+                    extname(source).toLowerCase() == ".jpg" ||
+                    extname(source).toLowerCase() == ".pcd" ||
+                    extname(source).toLowerCase() == ".png"
+                )
+        };
+
+        const data = imagesData(path);
+
+        const getImageDesc = path => {
+            var index = parseInt(parse(basename(decodeURIComponent(path))).name);
+            var url = (folderSlash ? folderSlash : "") + "images/" + basename(path)
+            var dimensions = imageSize(join(config.imagesFolder, url));            
+            return {
+                name: basename(path),
+                data: data[index],
+                url: url,
+                width: dimensions.width,
+                height: dimensions.height
+            };
+        };
+
+        const getImages = source =>
+            readdirSync(source).map(name => join(source, name)).filter(isImage);
+
+        const folderSlash = path ? dirname(decodeURIComponent(path)).substring(1) + "/" : "/";
+        const leaf = join(config.imagesFolder, dirname(decodeURIComponent(path)), 'images');
+        const images = getImages(leaf);
+
+        const res = {
+            images: images.map(getImageDesc),
+            imagesCount: images.length
+        };
 
         return res;
     },

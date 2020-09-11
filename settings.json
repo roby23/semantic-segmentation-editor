@@ -180,6 +180,31 @@
       {"label": "Class 31"},
       {"label": "Class 32"}
     ]
+    },
+    {
+      "name": "Materiali",
+      "objects": [
+        {
+          "label": "lapidei naturali", 
+          "color": "#CFCFCF"
+        },
+        {
+          "label": "aggregati artificiali",
+          "color": "#FF8800"
+        },
+        {
+          "label": "organici naturali",
+          "color": "#799024"
+        },
+        {
+          "label": "metalli",
+          "color": "#FAFFF5"
+        },
+        {
+          "label": "materiali sintetici",
+          "color": "#9E9BFF"
+        }
+      ]
     }
   ]
 }

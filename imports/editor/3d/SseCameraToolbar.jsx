@@ -13,6 +13,7 @@ export default class SseCameraToolbar extends SseToolbar {
         this.state = {
             colorBoostVisible: "none",
             pointSizeVisible: "none",
+            showCameraCommands : true,
             showRgbToggle: false
         };
         this.state.data = {
@@ -40,6 +41,12 @@ export default class SseCameraToolbar extends SseToolbar {
 
         this.onMsg("show-rgb-toggle", ()=>{
             this.setState({showRgbToggle: true})
+        });
+        this.onMsg("hide-camera-controls", ()=>{
+            this.setState({showCameraCommands: false})
+        });
+        this.onMsg("show-camera-controls", ()=>{
+            this.setState({showCameraCommands: true})
         });
         this.onMsg("color-boost-toggle", () => {
             if (this.state.colorBoostVisible == "none") {
@@ -91,13 +98,14 @@ export default class SseCameraToolbar extends SseToolbar {
         return (
             <div className="vflex flex-justify-content-space-around sse-toolbar no-shrink">
                 <div className="v group">
-                    {this.renderCommand("viewCenterCommand")}
-                    {this.renderCommand("viewCameraCommand")}
-                    {this.renderCommand("viewFrontCommand")}
-                    {this.renderCommand("viewBehindCommand")}
-                    {this.renderCommand("viewLeftCommand")}
-                    {this.renderCommand("viewRightCommand")}
-                    {this.renderCommand("viewTopCommand")}
+                    {this.state.showCameraCommands ? this.renderCommand("viewCenterCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewCameraCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewFrontCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewBehindCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewLeftCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewRightCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("viewTopCommand"): null}
+                    {this.state.showCameraCommands ? this.renderCommand("orientationCommand") : null}
                 </div>
                 <div className="grow v group flex-justify-content-end">
                     {this.state.showRgbToggle ? this.renderCommand("rgbCommand") : null}
@@ -128,8 +136,7 @@ export default class SseCameraToolbar extends SseToolbar {
                             value={this.state.data.colorBoost}
                             onChange={this.dataChange('colorBoost', "color-boost").bind(this)}
                         />
-                    </div>
-                    {this.renderCommand("orientationCommand")}
+                    </div>                    
                 </div>
             </div>
         )

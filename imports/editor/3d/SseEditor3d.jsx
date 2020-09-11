@@ -18,6 +18,7 @@ import PolyBool from "polybooljs";
 import lineclip from "lineclip";
 import SseMsg from "../../common/SseMsg";
 import $ from "jquery";
+import { Tree } from 'mdi-material-ui';
 
 const PI = Math.PI;
 const DOUBLEPI = PI * 2;
@@ -51,6 +52,8 @@ export default class SseEditor3d extends React.Component {
         this.pixelProjection = new Map();
         this.highlightedIndex = undefined;
         this.dataManager = new SseDataManager();
+        this.savedCamera = undefined;
+        this.savedOrbiter = undefined;
         
         this.tweenDuration = 500;
 
@@ -307,7 +310,7 @@ export default class SseEditor3d extends React.Component {
     unselectObject() {
         this.selectedObject = undefined;
         this.sendMsg("object-select", {value: undefined});
-        this.displayAll();
+        //this.displayAll();
     }
 
     addObjectPoints() {
@@ -476,12 +479,16 @@ export default class SseEditor3d extends React.Component {
             this.removeObjectPoints();
         });
 
-
         this.onMsg("orientation-change", () => {
             this.startPointcloudOrientation();
         });
         this.onMsg("orientation-abort", () => {
             this.stopPointcloudOrientation();
+        });
+
+        this.onMsg("image-view-abort", () => {
+            this.sendMsg("show-camera-controls");
+            this.centerView();
         });
 
         this.onMsg("tagsChanged", () => this.saveAll());
@@ -494,6 +501,73 @@ export default class SseEditor3d extends React.Component {
         }));
 
         this.onMsg("rgb-toggle", () => this.toggleRgbDisplay());
+
+        this.onMsg("setCameraView", (image => {
+
+            this.sendMsg("hide-camera-controls");
+            this.sendMsg("alert", {
+                autoHide: false,
+                message: "Point cloud image view mode",
+                buttonText: "CANCEL",
+                closeMessage: "image-view-abort",
+                forceCloseMessage: "image-view-close"
+            });
+
+            const data = image.data;
+
+            var projection = new THREE.Matrix4();
+
+            var ppx = image.width / 2.0;
+            var ppy = image.height / 2.0;
+                
+            projection.set(
+                2.0 * data.focal / image.width, 0, 0, 0, 
+                0, 2.0 * data.focal / image.height, 0, 0, 
+                1.0 - 2.0 * ppx / image.width, -1.0 + (2.0 * ppy + 2.0) / image.height, (0.01 + 10000) / (0.01 - 10000), -1.0,
+                0, 0, 2.0 * 0.01 * 10000 / (0.01 - 10000), 0);
+            
+            projection.transpose();            
+
+            var cv2gl = new THREE.Matrix4();
+            
+            cv2gl.set(
+                1, 0, 0, 0,
+                0, -1, 0, 0,
+                0, 0, -1, 0,
+                0, 0, 0, 1
+            );
+
+            var view = cv2gl.multiply(data.R);            
+                        
+            view.elements[12] += view.elements[0] * (data.T.x) + view.elements[4] * (data.T.y) + view.elements[8] * (data.T.z);
+            view.elements[13] += view.elements[1] * (data.T.x) + view.elements[5] * (data.T.y) + view.elements[9] * (data.T.z);
+            view.elements[14] += view.elements[2] * (data.T.x) + view.elements[6] * (data.T.y) + view.elements[10] * (data.T.z);
+            //view.elements[15] += view.elements[3] * (data.T.x) + view.elements[7] * (data.T.y) + view.elements[11] * (data.T.z);            
+            
+            var fov = 2 * Math.atan(1/projection.elements[5]) * 180 / PI;
+            var near = projection.elements[14] / (projection.elements[10] - 1.0);
+            var far = projection.elements[14] / (projection.elements[10] + 1.0);
+
+            var p = new THREE.Vector3();
+            var r = new THREE.Quaternion();
+            var s = new THREE.Vector3();
+            view.decompose(p, r, s);    
+            
+            this.camera = new THREE.PerspectiveCamera(fov, image.width / image.height, 0.01, 10000);	
+            this.camera.position.set(-data.T.x, -data.T.y, -data.T.z);
+            this.camera.setRotationFromQuaternion(r.inverse());
+            this.camera.updateProjectionMatrix();   
+            this.orbiting = true;
+            
+            // var direction = new THREE.Vector3(0, 0, 1);
+            // var eye = new THREE.Vector3(-p.x, -p.y, -p.z);
+            // var target = new THREE.Vector3(-p.x, -p.y, -p.z);
+
+            // var rot = new THREE.Matrix3();
+            // rot.setFromMatrix4(data.R);            
+            // target.add(direction.applyMatrix3(rot.transpose()));            
+            // this.moveCamera(eye, target);            
+        }));
     }
 
     componentWillUnmount(){
@@ -535,9 +609,11 @@ export default class SseEditor3d extends React.Component {
 
         scene.background = new THREE.Color(0x111111);
 
-        const camera = this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
+        const camera = this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 10000);
 
         scene.add(camera);
+
+        this.savedCamera = camera;
 
         const rendererAttrs = {
             antialias: true,
@@ -580,6 +656,8 @@ export default class SseEditor3d extends React.Component {
         this.orbiter.addEventListener("end", this.orbiterEnd.bind(this), false);
 
         this.frustum = new THREE.Frustum();
+
+        this.savedOrbiter = this.orbiter;
     }
 
     grayIndex(idx) {
@@ -614,6 +692,9 @@ export default class SseEditor3d extends React.Component {
     }
 
     centerView() {
+        this.camera = this.savedCamera;
+        this.orbiter = this.savedOrbiter;
+        
         this.fitView(this.visibleIndices);
     }
 
@@ -682,7 +763,7 @@ export default class SseEditor3d extends React.Component {
     }
     */
 
-    moveCamera(eye, target) {
+    moveCamera(eye, target) {        
         this.orbiting = true;
         const orientedRange = (a0, a1) => {
             const da = (a1 - a0) % DOUBLEPI;
@@ -850,7 +931,7 @@ export default class SseEditor3d extends React.Component {
                     if (this.selection.size > 0) {
                         this.clearSelection();
                     } else {
-                        this.displayAll();
+                        //this.displayAll();
                     }
                 }
             }
@@ -1739,7 +1820,7 @@ export default class SseEditor3d extends React.Component {
         this.invalidatePixelProjection();
     }
 
-    mouseDown(ev) {
+    mouseDown(ev) {        
         if (ev.button == 1 || this.ctrlDown) {
             this.changeTarget(ev);
         } else {
@@ -1766,10 +1847,9 @@ export default class SseEditor3d extends React.Component {
             this.setSelectionFeedback();
         }
 
-        if (this.mouse.dragged < 4 && this.mouseTargetIndex == undefined
-            && (ev.button != 1 && !this.ctrlDown)) {
+        if (this.mouse.dragged < 4 && this.mouseTargetIndex == undefined && (ev.button != 1 && !this.ctrlDown)) {
             this.clearSelection();
-            this.displayAll();
+            //this.displayAll();
         }
 
         if (this.mouse.dragged < 4 && this.pendingOrientationArrow) {
