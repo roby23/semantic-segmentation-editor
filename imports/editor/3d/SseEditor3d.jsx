@@ -49,6 +49,7 @@ export default class SseEditor3d extends React.Component {
         this.objects = new Set();
         this.selectedObject = undefined;
         this.activeClassIndex = 0;
+        this.activeDamageIndex = 0;
         this.pixelProjection = new Map();
         this.highlightedIndex = undefined;
         this.dataManager = new SseDataManager();
@@ -151,6 +152,26 @@ export default class SseEditor3d extends React.Component {
         return this._classesData;
     }
 
+    get damagesDescriptors() {
+        if (!this._damagesData) {
+            const byIndex = this.activeSod.descriptors;
+            this._damagesData = {byName: this.activeSod.byLabel, byIndex};
+
+            this.activeSod.labels.forEach((k) => {
+                let c = this.activeSod.byLabel.get(k);
+                c.mute = false;
+                c.solo = false;
+                c.visible = true;
+
+                const rgb = SseGlobals.hex2rgb(c.color);
+                c.red = rgb[0];
+                c.green = rgb[1];
+                c.blue = rgb[2];
+            });
+        }
+        return this._damagesData;
+    }
+
     displayAll() {
         if (this.cloudData) {
             this.cloudData.forEach((pt, pos) => {
@@ -230,6 +251,18 @@ export default class SseEditor3d extends React.Component {
         if (this.selectedObject) {
             this.selectedObject.classIndex = classIndex;
             this.selectedObject.points.forEach(idx => this.assignNewClass(idx, classIndex));
+            this.sendMsg("object-select", {value: this.selectedObject})
+        }
+        this.invalidateColor();
+        this.invalidateCounters();
+        this.saveAll();
+    }
+
+    changeDamageOfSelection(classIndex) {
+        this.selection.forEach(idx => this.assignNewDamage(idx, classIndex));
+        if (this.selectedObject) {
+            this.selectedObject.damageIndex = damageIndex;
+            this.selectedObject.points.forEach(idx => this.assignNewDamage(idx, damageIndex));
             this.sendMsg("object-select", {value: this.selectedObject})
         }
         this.invalidateColor();
@@ -407,6 +440,11 @@ export default class SseEditor3d extends React.Component {
             this.changeClassOfSelection(this.activeClassIndex);
         });
 
+        this.onMsg("damageSelection", (arg) => {
+            this.activeDamageIndex = arg.descriptor.damageIndex;
+            this.changeDamageOfSelection(this.activeDamageIndex);
+        });
+
         this.onMsg("active-soc", arg => {
             if (this.activeSoc !== arg.value) {
                 this.activeSoc = arg.value;
@@ -417,6 +455,24 @@ export default class SseEditor3d extends React.Component {
                 else {
                     this._classesData = null;
                     this.meta.socName = this.activeSoc.name;
+
+                    this.invalidateColor();
+                    this.displayAll();
+                    this.saveMeta();
+                }
+                this.generateColorCache();
+            }
+        });
+
+        this.onMsg("active-sod", arg => {
+            if (this.activeSod !== arg.value) {
+                this.activeSod = arg.value;
+                if (!this.meta) {
+                    this.start();
+                }
+                else {
+                    this._damagesData = null;
+                    this.meta.sodName = this.activeSod.name;
 
                     this.invalidateColor();
                     this.displayAll();
@@ -508,7 +564,7 @@ export default class SseEditor3d extends React.Component {
             this.sendMsg("alert", {
                 autoHide: false,
                 message: "Point cloud image view mode",
-                buttonText: "CANCEL",
+                buttonText: "EXIT",
                 closeMessage: "image-view-abort",
                 forceCloseMessage: "image-view-close"
             });
@@ -1790,6 +1846,24 @@ export default class SseEditor3d extends React.Component {
         this.invalidateColor();
     }
 
+    assignNewDamage(pointIndex, damageIndex) {
+        const item = this.cloudData[pointIndex];
+        this.cloudData.byDamageIndex[item.damageIndex].delete(item);
+        item.damageIndex = damageIndex;
+        
+        if (!this.cloudData.byDamageIndex[item.damageIndex])
+            this.cloudData.byDamageIndex[item.damageIndex] = new Set();
+        this.cloudData.byDamageIndex[item.damageIndex].add(item);
+        this.selection.delete(pointIndex);
+        const obj = this.pointToObject.get(pointIndex);
+        if (obj && obj.damageIndex !== damageIndex) {
+            obj.points.splice(obj.points.indexOf(pointIndex), 1);
+        }
+        this.ungrayIndex(pointIndex);
+        this.setColor(pointIndex, this.damagesDescriptors.byIndex[damageIndex]);
+        this.invalidateColor();
+    }
+
     changeTarget(ev) {
         if (this.mouseTargetIndex) {
             const newTarget = new THREE.Vector3().copy(this.cloudData[this.mouseTargetIndex]);
@@ -2067,6 +2141,16 @@ export default class SseEditor3d extends React.Component {
                     acc[cur.classIndex] = new Set([cur]);
                 return acc;
             }, this.cloudData.byClassIndex);
+
+            this.cloudData.byDamageIndex = {};
+
+            this.cloudData.reduce((acc, cur) => {
+                if (acc[cur.damageIndex])
+                    acc[cur.damageIndex].add(cur);
+                else
+                    acc[cur.damageIndex] = new Set([cur]);
+                return acc;
+            }, this.cloudData.byDamageIndex);            
 
             this.cloudGeometry = geometry;
             this.camera.up.set(0, -1, 0);

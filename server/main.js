@@ -53,6 +53,49 @@ Meteor.methods({
         });
         return data;
     },
+    'getDamagesSets'() {
+        const data = config.setsOfDamages;
+        const scheme = new ColorScheme;
+        scheme.from_hue(0)         // Start the scheme
+            .scheme('tetrade')     // Use the 'triade' scheme, that is, colors
+            // selected from 3 points equidistant around
+            // the color wheel.
+            .variation('soft');   // Use the 'soft' color variation
+        let colors = scheme.colors();
+        scheme.from_hue(10)         // Start the scheme
+            .scheme('tetrade')     // Use the 'triade' scheme, that is, colors
+            // selected from 3 points equidistant around
+            // the color wheel.
+            .variation('pastel');   // Use the 'soft' color variation
+        colors = colors.concat(scheme.colors());
+        scheme.from_hue(20)         // Start the scheme
+            .scheme('tetrade')     // Use the 'triade' scheme, that is, colors
+            // selected from 3 points equidistant around
+            // the color wheel.
+            .variation('hard');   // Use the 'soft' color variation
+        colors = colors.concat(scheme.colors());
+        scheme.from_hue(30)         // Start the scheme
+            .scheme('tetrade')     // Use the 'triade' scheme, that is, colors
+            // selected from 3 points equidistant around
+            // the color wheel.
+            .variation('hard');   // Use the 'soft' color variation
+        colors = colors.concat(scheme.colors());
+        scheme.from_hue(40)         // Start the scheme
+            .scheme('tetrade')     // Use the 'triade' scheme, that is, colors
+            // selected from 3 points equidistant around
+            // the color wheel.
+            .variation('hard');   // Use the 'soft' color variation
+        colors = colors.concat(scheme.colors());
+        colors = colors.map(c => "#" + c);
+        data.forEach(sod => {
+            sod.objects.forEach((od, i) => {
+                if (!od.color) {
+                    od.color = colors[i];
+                }
+            })
+        });
+        return data;
+    },
     /*
         'rebuildTagList'() {
             const all = SseSamples.find().fetch();
