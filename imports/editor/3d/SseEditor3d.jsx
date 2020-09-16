@@ -296,6 +296,13 @@ export default class SseEditor3d extends React.Component {
             this.sendMsg("class-instance-count", arg);
             i++;
         });
+
+        i = 0;
+        this.activeSod.labels.forEach(a => {
+            const arg = {damageIndex: i, count: (this.cloudData.byDamageIndex[i] || {size: 0}).size};
+            this.sendMsg("damage-instance-count", arg);
+            i++;
+        });
     }
 
     invalidateObjects() {
@@ -1010,6 +1017,7 @@ export default class SseEditor3d extends React.Component {
             const pj = this.getPixel(data);
             if (pj) {
                 let message = this.activeSoc.labelForIndex(data.classIndex);
+                message += " (" + this.activeSod.labelForIndex(data.damageIndex) + ") ";
                 const oc = this.originalCoordinates(this.highlightedIndex);
                 message += " (x: " + round2(oc.x)
                     + "m, y: " + round2(oc.y)
@@ -1063,8 +1071,11 @@ export default class SseEditor3d extends React.Component {
                     } else if (this.grayIndices.has(idx)) {
                         this.setColor(idx, {red: .5, green: 0.5, blue: 0.5});
                     } else {
-                        this.setColor(idx,
-                            this.classesDescriptors.byIndex[pt.classIndex]);
+                        if (pt.damageIndex == 0){
+                            this.setColor(idx, this.classesDescriptors.byIndex[pt.classIndex]);
+                        } else{
+                            this.setColor(idx, this.damagesDescriptors.byIndex[pt.damageIndex]);
+                        }
                     }
                 });
                 this.colorIsDirty = false;
@@ -1424,14 +1435,14 @@ export default class SseEditor3d extends React.Component {
         this.meta.rotationY = ry || 0;
         this.meta.rotationZ = rz || 0;
         this.cloudGeometry.rotateX(this.meta.rotationX).rotateY(this.meta.rotationY).rotateZ(this.meta.rotationZ);
-        this.display(this.objects, this.positionArray, this.labelArray, this.rgbArray);
+        this.display(this.objects, this.positionArray, this.labelArray, this.rgbArray, this.damageArray);
         this.saveMeta();
     }
 
     resetRotation() {
         const {rotationX, rotationY, rotationZ} = this.meta;
         this.cloudGeometry.rotateZ(-rotationZ || 0).rotateY(-rotationY || 0).rotateX(-rotationX || 0);
-        this.display(undefined, this.positionArray, this.labelArray, this.rgbArray);
+        this.display(undefined, this.positionArray, this.labelArray, this.rgbArray, this.damageArray);
         this.meta.rotationX = this.meta.rotationY = this.meta.rotationZ = 0;
         this.updateGlobalBox();
         this.invalidatePosition();
@@ -1836,7 +1847,7 @@ export default class SseEditor3d extends React.Component {
         if (!this.cloudData.byClassIndex[item.classIndex])
             this.cloudData.byClassIndex[item.classIndex] = new Set();
         this.cloudData.byClassIndex[item.classIndex].add(item);
-        this.selection.delete(pointIndex);
+        //this.selection.delete(pointIndex);
         const obj = this.pointToObject.get(pointIndex);
         if (obj && obj.classIndex !== classIndex) {
             obj.points.splice(obj.points.indexOf(pointIndex), 1);
@@ -1854,7 +1865,7 @@ export default class SseEditor3d extends React.Component {
         if (!this.cloudData.byDamageIndex[item.damageIndex])
             this.cloudData.byDamageIndex[item.damageIndex] = new Set();
         this.cloudData.byDamageIndex[item.damageIndex].add(item);
-        this.selection.delete(pointIndex);
+        //this.selection.delete(pointIndex);
         const obj = this.pointToObject.get(pointIndex);
         if (obj && obj.damageIndex !== damageIndex) {
             obj.points.splice(obj.points.indexOf(pointIndex), 1);
@@ -2072,7 +2083,7 @@ export default class SseEditor3d extends React.Component {
         }
     }
 
-    display(objectArray, positionArray, labelArray, rgbArray) {
+    display(objectArray, positionArray, labelArray, rgbArray, damageArray) {
         return new Promise( (res, rej)=> {
             this.scene.remove(this.cloudObject);
             const geometry = this.geometry = new THREE.BufferGeometry();
@@ -2082,8 +2093,8 @@ export default class SseEditor3d extends React.Component {
             this.objects = new Set(objectArray);
             this.buildPointToObjectMap();
             this.labelArray = labelArray;
-
-            this.rgbArray = rgbArray;
+            this.damageArray = damageArray;
+            this.rgbArray = rgbArray;            
 
             positionArray.forEach((v, i) => {
                 switch (i % 3) {
@@ -2099,7 +2110,9 @@ export default class SseEditor3d extends React.Component {
                         break;
                 }
             });
-            const colorArray = [];
+            
+            let colorArray = [];
+            
             if(this.displayRgb){
                 if (rgbArray) {
                     rgbArray.forEach((v, i) => {
@@ -2110,10 +2123,18 @@ export default class SseEditor3d extends React.Component {
                 }
             }
             else{
-                if (labelArray) {
+                if (labelArray) {                    
                     labelArray.forEach((v, i) => {
                         this.cloudData[i].classIndex = v;
                         const rgb = this.activeSoc.colorForIndexAsRGBArray(v);
+                        colorArray.push(rgb[0], rgb[1], rgb[2]);
+                    });
+                }
+                if (damageArray) {
+                    colorArray = [];
+                    damageArray.forEach((v, i) => {
+                        this.cloudData[i].damageIndex = v;
+                        const rgb = this.activeSod.colorForIndexAsRGBArray(v);
                         colorArray.push(rgb[0], rgb[1], rgb[2]);
                     });
                 }
@@ -2177,7 +2198,7 @@ export default class SseEditor3d extends React.Component {
         return new Promise((res) => {
             loader.load(fileUrl, (arg) => {
 
-                this.display(arg.object, arg.position, arg.label, arg.rgb);
+                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage);
                 Object.assign(this.meta, {header: arg.header});
                 res();
             });
@@ -2189,12 +2210,17 @@ export default class SseEditor3d extends React.Component {
         this.dataManager.saveBinaryFile(this.props.imageUrl + ".labels", this.cloudData.map(x => x.classIndex));
     }
 
+    saveBinaryDamages() {
+        this.dataManager.saveBinaryFile(this.props.imageUrl + ".damages", this.cloudData.map(x => x.damageIndex));
+    }
+
     saveBinaryObjects() {
         this.dataManager.saveBinaryFile(this.props.imageUrl + ".objects", Array.from(this.objects));
     }
 
     saveAll() {
         this.saveBinaryLabels();
+        this.saveBinaryDamages();
         this.saveBinaryObjects();
         this.saveMeta();
     }
@@ -2222,8 +2248,11 @@ export default class SseEditor3d extends React.Component {
         if (serverMeta) {
             this.meta.socName = serverMeta.socName;
             this.sendMsg("active-soc-name", {value: this.meta.socName});
+            this.meta.sodName = serverMeta.sodName;
+            this.sendMsg("active-sod-name", {value: this.meta.sodName});
         } else {
             this.meta.socName = this.activeSoc.name;
+            this.meta.sodName = this.activeSod.name;
         }
 
         this.sendMsg("currentSample", {data: this.meta});
@@ -2232,30 +2261,41 @@ export default class SseEditor3d extends React.Component {
         this.loadPCDFile(fileUrl).then(() => {
             this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
             this.sendMsg("bottom-right-label", {message: "Loading labels..."});
-            this.dataManager.loadBinaryFile(this.props.imageUrl + ".labels")
-                .then(result => {
-                    this.sendMsg("bottom-right-label", {message: "Loading objects..."});
-                    this.labelArray = result;
-                    this.maxClassIndex = 0;
-                    for (var i = 0; i < this.labelArray.length; i++) {
-                        if (this.labelArray[i] > this.maxClassIndex) {
-                            this.maxClassIndex = this.labelArray[i];
-                        }
+
+            this.dataManager.loadBinaryFile(this.props.imageUrl + ".labels").then(result => {
+                this.sendMsg("bottom-right-label", {message: "Loading damages..."});
+                this.labelArray = result;
+                this.maxClassIndex = 0;
+                for (var i = 0; i < this.labelArray.length; i++) {
+                    if (this.labelArray[i] > this.maxClassIndex) {
+                        this.maxClassIndex = this.labelArray[i];
                     }
-                    this.sendMsg("maximum-classIndex", {value: this.maxClassIndex});
-                }, () => {
-                    this.saveBinaryLabels();
-                }).then(() => {
-                this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
-                    if (!result.forEach)
-                        result = undefined;
-                    this.display(result, this.positionArray, this.labelArray, this.rgbArray).then( ()=>{
-                        this.initDone();
+                }
+                this.sendMsg("maximum-classIndex", {value: this.maxClassIndex});
+            }, 
+            () => { this.saveBinaryLabels(); }).then(() => {
+                this.dataManager.loadBinaryFile(this.props.imageUrl + ".damages").then(result => {
+                        this.sendMsg("bottom-right-label", {message: "Loading objects..."});
+                        this.damageArray = result;
+                        this.maxDamageIndex = 0;
+                        for (var i = 0; i < this.damageArray.length; i++) {
+                            if (this.damageArray[i] > this.maxDamageIndex) {                            
+                                this.maxDamageIndex = this.damageArray[i];
+                            }
+                        }
+                        this.sendMsg("maximum-damageIndex", {value: this.maxDamageIndex});
+                    }, 
+                    () => { this.saveBinaryDamages(); }).then(() => {
+                        this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
+                            if (!result.forEach)
+                                result = undefined;
+                            this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray).then( ()=> {
+                                this.initDone();
+                            });
+                        }, 
+                        () => { this.initDone(); });
                     });
-                }, () => {
-                    this.initDone();
                 });
-            });
-        });
+            }); 
     }
 }

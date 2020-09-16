@@ -142,6 +142,7 @@ export default class SsePCDLoader {
                 var position = [];
                 var color = [];
                 var label = [];
+                var damage = [];
                 var payload = [];
                 var rgb = [];
 
@@ -187,6 +188,15 @@ export default class SsePCDLoader {
                         } else {
                             item.classIndex = 0;
                             label.push(0);
+                        }
+
+                        if (offset.damage !== undefined) {
+                            const damageIndex = parseInt(line[offset.damage]) || 0;
+                            item.damageIndex = damageIndex;
+                            damage.push(damageIndex);
+                        } else {
+                            item.damageIndex = 0;
+                            damage.push(0);
                         }
 
                         // Initialize colors
@@ -256,6 +266,15 @@ export default class SsePCDLoader {
                             label.push(0);
                         }
 
+                        if (offset.damage !== undefined) {
+                            const damageIndex = parseInt(line[offset.damage]) || 0;
+                            item.damageIndex = damageIndex;
+                            damage.push(damageIndex);
+                        } else {
+                            item.damageIndex = 0;
+                            damage.push(0);
+                        }
+
                         // Initialize colors
                         if (offset.rgb != undefined) {
                             var colorRGB = dataview.getUint32(row + offset.rgb, true);
@@ -315,6 +334,15 @@ export default class SsePCDLoader {
                             label.push(0);
                         }
 
+                        if (offset.damage !== undefined) {
+                            const damageIndex = parseInt(line[offset.damage]) || 0;
+                            item.damageIndex = damageIndex;
+                            damage.push(damageIndex);
+                        } else {
+                            item.damageIndex = 0;
+                            damage.push(0);
+                        }
+
                         // Initialize colors
                         if (offset.rgb != undefined) {
                             var colorRGB = dataview.getUint32(row + offset.rgb, true);
@@ -338,6 +366,8 @@ export default class SsePCDLoader {
                     geometry.setAttribute('position', new THREE.Float32BufferAttribute(position, 3));
                 if (label.length > 0)
                     geometry.setAttribute('label', new THREE.Uint8BufferAttribute(label, 3));
+                if (damage.length > 0)
+                    geometry.setAttribute('damage', new THREE.Uint8BufferAttribute(damage, 3));
                 if (color.length > 0) {
                     const colorAtt = new THREE.Float32BufferAttribute(color, 3);
                     geometry.setAttribute('color', colorAtt);
@@ -354,7 +384,7 @@ export default class SsePCDLoader {
                 name = /([^\/]*)/.exec(name);
                 name = name[1].split('').reverse().join('');
                 mesh.name = url;
-                return {position, label, header: PCDheader, rgb};
+                return {position, label, header: PCDheader, rgb, damage};
             }
 
         };

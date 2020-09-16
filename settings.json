@@ -190,11 +190,11 @@
         },
         {
           "label": "Lapidei naturali", 
-          "color": "#CFCFCF"
+          "color": "#FF8800"
         },
         {
           "label": "Aggregati artificiali",
-          "color": "#FF8800"
+          "color": "#CFCFCF"
         },
         {
           "label": "Organici naturali",
@@ -215,7 +215,7 @@
     {
       "name": "Danni", 
       "objects": [
-        {"label": "Nessuno", "color": "#CFCFCF"},
+        {"label": "Nessuno", "color": "#FFFFFF"},
         {"label": "Muffa", "color": "#804080"},
         {"label": "Umidita'", "color": "#F423E8"}
       ]
