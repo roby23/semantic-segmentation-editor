@@ -34,6 +34,7 @@ function generateJson(req, res, next) {
         const soc = setsOfClassesMap.get(item.socName);
         item.objects.forEach(obj => {
             obj.label = soc.objects[obj.classIndex].label;
+            //obj.damage = soc.objects[obj.damageIndex].label;
         });
         res.end(JSON.stringify(item, null, 1));
     }else{
@@ -45,7 +46,7 @@ function generatePCDOutput(req, res, next) {
     const pcdFile = imagesFolder + decodeURIComponent(req.url);
     const fileName = basename(pcdFile);
     const labelFile = pointcloudsFolder + decodeURIComponent(req.url) + ".labels";
-    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damage";
+    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";
     const objectFile = pointcloudsFolder + decodeURIComponent(req.url) + ".objects";
 
     if (this.fileMode) {
@@ -67,10 +68,10 @@ function generatePCDOutput(req, res, next) {
         const rgb2int = rgb => rgb[2] + 256 * rgb[1] + 256 * 256 * rgb[0];
 
         let out = "VERSION .7\n";
-        out += hasRgb ? "FIELDS x y z rgb label object\n" : "FIELDS x y z label object\n";
-        out += hasRgb ? "SIZE 4 4 4 4 4 4\n" : "SIZE 4 4 4 4 4\n";
-        out += hasRgb ? "TYPE F F F I I I\n" : "TYPE F F F I I\n";
-        out += hasRgb ? "COUNT 1 1 1 1 1 1\n" : "COUNT 1 1 1 1 1\n";
+        out += hasRgb ? "FIELDS x y z rgb label damage object\n" : "FIELDS x y z label damage object\n";
+        out += hasRgb ? "SIZE 4 4 4 4 4 4 4\n" : "SIZE 4 4 4 4 4 4\n";
+        out += hasRgb ? "TYPE F F F I I I I\n" : "TYPE F F F I I I\n";
+        out += hasRgb ? "COUNT 1 1 1 1 1 1 1\n" : "COUNT 1 1 1 1 1 1\n";
         out += "WIDTH " + pcdContent.header.width + "\n";
         out += "HEIGHT " + pcdContent.header.height + "\n";
         out += "POINTS " + pcdContent.header.width*pcdContent.header.height + "\n";
@@ -135,6 +136,7 @@ function generatePCDOutput(req, res, next) {
                                     out += rgb2int(obj.rgb) + " ";
                                 }
                                 out += labels[position] + " ";
+                                out += damages[position] + " ";
                                 const assignedObject = objectByPointIndex.get(position);
                                 if (assignedObject != undefined)
                                     out += assignedObject;

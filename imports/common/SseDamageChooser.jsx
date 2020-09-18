@@ -198,7 +198,7 @@ export default class SseDamageChooser extends SseToolbar {
                             </div>
                             <sup>{this.state.counters[objDesc.damageIndex] > 0 ? this.state.counters[objDesc.damageIndex] : ""}</sup>
                         </Button>
-                        {this.props.mode == "3d" ?
+                        {/*this.props.mode == "3d" ?
                             <div className="hflex">
                                 <IconButton
                                     onClick={() => this.muteOrSolo("mute", objDesc, idx)}
@@ -211,7 +211,7 @@ export default class SseDamageChooser extends SseToolbar {
                                     <Eye/>
                                 </IconButton>
 
-                            </div> : null}
+                                </div> : null*/}
                     </div>
                 })}
                 {this.renderDialog()}
