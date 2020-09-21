@@ -34,6 +34,7 @@ function generateJson(req, res, next) {
         const soc = setsOfClassesMap.get(item.socName);
         item.objects.forEach(obj => {
             obj.label = soc.objects[obj.classIndex].label;
+            //obj.damage = soc.objects[obj.damageIndex].label;
         });
         res.end(JSON.stringify(item, null, 1));
     }else{
@@ -45,6 +46,7 @@ function generatePCDOutput(req, res, next) {
     const pcdFile = imagesFolder + decodeURIComponent(req.url);
     const fileName = basename(pcdFile);
     const labelFile = pointcloudsFolder + decodeURIComponent(req.url) + ".labels";
+    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";
     const objectFile = pointcloudsFolder + decodeURIComponent(req.url) + ".objects";
 
     if (this.fileMode) {
@@ -66,10 +68,10 @@ function generatePCDOutput(req, res, next) {
         const rgb2int = rgb => rgb[2] + 256 * rgb[1] + 256 * 256 * rgb[0];
 
         let out = "VERSION .7\n";
-        out += hasRgb ? "FIELDS x y z rgb label object\n" : "FIELDS x y z label object\n";
-        out += hasRgb ? "SIZE 4 4 4 4 4 4\n" : "SIZE 4 4 4 4 4\n";
-        out += hasRgb ? "TYPE F F F I I I\n" : "TYPE F F F I I\n";
-        out += hasRgb ? "COUNT 1 1 1 1 1 1\n" : "COUNT 1 1 1 1 1\n";
+        out += hasRgb ? "FIELDS x y z rgb label damage object\n" : "FIELDS x y z label damage object\n";
+        out += hasRgb ? "SIZE 4 4 4 4 4 4 4\n" : "SIZE 4 4 4 4 4 4\n";
+        out += hasRgb ? "TYPE F F F I I I I\n" : "TYPE F F F I I I\n";
+        out += hasRgb ? "COUNT 1 1 1 1 1 1 1\n" : "COUNT 1 1 1 1 1 1\n";
         out += "WIDTH " + pcdContent.header.width + "\n";
         out += "HEIGHT " + pcdContent.header.height + "\n";
         out += "POINTS " + pcdContent.header.width*pcdContent.header.height + "\n";
@@ -89,58 +91,66 @@ function generatePCDOutput(req, res, next) {
             }
             const labels = SseDataWorkerServer.uncompress(labelContent);
 
-            readFile(objectFile, (objectErr, objectContent) => {
-                let objectsAvailable = true;
-                if (objectErr) {
-                    objectsAvailable = false;
+            readFile(damageFile, (damageErr, damageContent) => {
+                if (damageErr) {
+                    res.end("Error while parsing damages file.")
                 }
+                const damages = SseDataWorkerServer.uncompress(damageContent);
 
-                const objectByPointIndex = new Map();
-
-                if (objectsAvailable) {
-                    const objects = SseDataWorkerServer.uncompress(objectContent);
-                    objects.forEach((obj, objIndex) => {
-                        obj.points.forEach(ptIdx => {
-                            objectByPointIndex.set(ptIdx, objIndex);
-                        })
-                    });
-                }
-                let obj;
-
-                pcdContent.position.forEach((v, i) => {
-                    const position = Math.floor(i / 3);
-
-                    switch (i % 3) {
-                        case 0:
-                            if (hasRgb) {
-                                obj = {rgb: pcdContent.rgb[position], x: v};
-                            }else{
-                                obj = {x: v};
-                            }
-                            break;
-                        case 1:
-                            obj.y = v;
-                            break;
-                        case 2:
-                            obj.z = v;
-                            out += obj.x + " " + obj.y + " " + obj.z + " ";
-                            if (hasRgb) {
-                                out += rgb2int(obj.rgb) + " ";
-                            }
-                            out += labels[position] + " ";
-                            const assignedObject = objectByPointIndex.get(position);
-                            if (assignedObject != undefined)
-                                out += assignedObject;
-                            else
-                                out += "-1";
-                            out += "\n";
-                            res.write(out);
-                            out = "";
-                            break;
+                readFile(objectFile, (objectErr, objectContent) => {
+                    let objectsAvailable = true;
+                    if (objectErr) {
+                        objectsAvailable = false;
                     }
-                });
 
-                res.end()
+                    const objectByPointIndex = new Map();
+
+                    if (objectsAvailable) {
+                        const objects = SseDataWorkerServer.uncompress(objectContent);
+                        objects.forEach((obj, objIndex) => {
+                            obj.points.forEach(ptIdx => {
+                                objectByPointIndex.set(ptIdx, objIndex);
+                            })
+                        });
+                    }
+                    let obj;
+
+                    pcdContent.position.forEach((v, i) => {
+                        const position = Math.floor(i / 3);
+
+                        switch (i % 3) {
+                            case 0:
+                                if (hasRgb) {
+                                    obj = {rgb: pcdContent.rgb[position], x: v};
+                                }else{
+                                    obj = {x: v};
+                                }
+                                break;
+                            case 1:
+                                obj.y = v;
+                                break;
+                            case 2:
+                                obj.z = v;
+                                out += obj.x + " " + obj.y + " " + obj.z + " ";
+                                if (hasRgb) {
+                                    out += rgb2int(obj.rgb) + " ";
+                                }
+                                out += labels[position] + " ";
+                                out += damages[position] + " ";
+                                const assignedObject = objectByPointIndex.get(position);
+                                if (assignedObject != undefined)
+                                    out += assignedObject;
+                                else
+                                    out += "-1";
+                                out += "\n";
+                                res.write(out);
+                                out = "";
+                                break;
+                        }
+                    });
+
+                    res.end()
+                })
             })
         });
     });

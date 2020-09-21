@@ -82,6 +82,7 @@ export default class SseObjectToolbar extends SseToolbar {
         this.addCommand("focusObjectCommand", "Focus Object", false, "", "object-focus", Target, undefined, "Focus Object");
         this.setState({ready: true});
         this.retriggerMsg("active-soc");
+        this.retriggerMsg("active-sod");
     }
 
     wheelScrolling(ev) {
@@ -119,6 +120,10 @@ export default class SseObjectToolbar extends SseToolbar {
 
         this.onMsg("active-soc", arg => {
             this.setState({soc: arg.value});
+        });
+
+        this.onMsg("active-sod", arg => {
+            this.setState({sod: arg.value});
         });
 
         this.onMsg("selection-changed", (arg) => {

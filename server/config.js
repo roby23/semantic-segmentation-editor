@@ -42,6 +42,13 @@ const defaultClasses = [{
         {"label": "Class 32"}
     ]
 }];
+const defaultDamages = [{
+    "name": "Danni", "objects": [
+        {"label": "Nessuno", "color": "#CFCFCF"},
+        {"label": "Muffa", "color": "#804080"},
+        {"label": "Umidita'", "color": "#F423E8"}
+    ]
+}];
 const init = ()=> {
     try {
         const config = Meteor.settings;
@@ -71,10 +78,19 @@ const init = ()=> {
             configurationFile.setsOfClasses = defaultClasses;
         }
         configurationFile.setsOfClasses.forEach(o => configurationFile.setsOfClassesMap.set(o.name, o));
+
+        configurationFile.setsOfDamagesMap = new Map();
+        configurationFile.setsOfDamages = config["sets-of-damages"];
+        if (!configurationFile.setsOfDamages){
+            configurationFile.setsOfDamages = defaultDamages;
+        }
+        configurationFile.setsOfDamages.forEach(o => configurationFile.setsOfDamagesMap.set(o.name, o));
+
         console.log("Semantic Segmentation Editor");
         console.log("Images (JPG, PNG, PCD) served from", configurationFile.imagesFolder);
         console.log("PCD binary segmentation data stored in", configurationFile.pointcloudsFolder);
         console.log("Number of available sets of object classes:", configurationFile.setsOfClasses.length);
+        console.log("Number of available sets of object damages:", configurationFile.setsOfDamages.length);
         return configurationFile;
     }catch(e){
         console.error("Error while parsing settings.json:", e);

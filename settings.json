@@ -185,25 +185,39 @@
       "name": "Materiali",
       "objects": [
         {
-          "label": "lapidei naturali", 
-          "color": "#CFCFCF"
+          "label": "Nessuno", 
+          "color": "#FFFFFF"          
         },
         {
-          "label": "aggregati artificiali",
+          "label": "Lapidei naturali", 
           "color": "#FF8800"
         },
         {
-          "label": "organici naturali",
+          "label": "Aggregati artificiali",
+          "color": "#CFCFCF"
+        },
+        {
+          "label": "Organici naturali",
           "color": "#799024"
         },
         {
-          "label": "metalli",
+          "label": "Metalli",
           "color": "#FAFFF5"
         },
         {
-          "label": "materiali sintetici",
+          "label": "Materiali sintetici",
           "color": "#9E9BFF"
         }
+      ]
+    }
+  ],
+  "sets-of-damages": [
+    {
+      "name": "Danni", 
+      "objects": [
+        {"label": "Nessuno", "color": "#FFFFFF"},
+        {"label": "Muffa", "color": "#804080"},
+        {"label": "Umidita'", "color": "#F423E8"}
       ]
     }
   ]

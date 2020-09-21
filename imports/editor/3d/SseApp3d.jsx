@@ -1,6 +1,7 @@
 import React from 'react';
 
 import SseClassChooser from "../../common/SseClassChooser";
+import SseDamageChooser from "../../common/SseDamageChooser";
 
 import {darkBaseTheme, MuiThemeProvider} from '@material-ui/core/styles';
 
@@ -13,6 +14,7 @@ import SseConfirmationDialog from "../../common/SseConfirmationDialog";
 import {Autorenew} from 'mdi-material-ui';
 import SseTheme from "../../common/SseTheme";
 import SseSetOfClasses from "../../common/SseSetOfClasses";
+import SseSetOfDamages from "../../common/SseSetOfDamages";
 import SseEditor3d from "./SseEditor3d";
 import SseToolbar3d from "./SseToolbar3d";
 import SseCameraToolbar from "./SseCameraToolbar";
@@ -34,6 +36,12 @@ export default class SseApp3d extends React.Component {
             this.classesSets = res.map(cset => new SseSetOfClasses(cset));
             this.setState({classesReady: true});
         });
+
+        this.damagesSets = [];
+        Meteor.call("getDamagesSets", (err, res) => {
+            this.damagesSets = res.map(cset => new SseSetOfDamages(cset));
+            this.setState({damagesReady: true});
+        });
     }
 
     setupTooltips() {
@@ -53,7 +61,7 @@ export default class SseApp3d extends React.Component {
     }
 
     render() {
-        if (!this.state.classesReady)
+        if (!this.state.classesReady || !this.state.damagesReady)
             return null;
         return (
             <div className="w100 h100">
@@ -67,6 +75,11 @@ export default class SseApp3d extends React.Component {
                                 <SseClassChooser
                                     mode="3d"
                                     classesSets={this.classesSets
+                                    }
+                                />
+                                <SseDamageChooser
+                                    mode="3d"
+                                    damagesSets={this.damagesSets
                                     }
                                 />
                                 <SseImagesPreview imageUrl={this.props.imageUrl} />
