@@ -622,10 +622,10 @@ export default class SseEditor3d extends React.Component {
             view.decompose(p, r, s);    
             
             this.camera = new THREE.PerspectiveCamera(fov, image.width / image.height, 0.01, 10000);	
-            // this.camera.position.set(-data.T.x, -data.T.y, -data.T.z);
-            // this.camera.setRotationFromQuaternion(r.inverse());
-            // this.camera.updateProjectionMatrix();   
-            this.camera.projectionMatrix.copy(projection.multiply(view));	
+            this.camera.position.set(-data.T.x, -data.T.y, -data.T.z);
+            this.camera.setRotationFromQuaternion(r.inverse());
+            this.camera.updateProjectionMatrix();   
+            this.camera.projectionMatrix.copy(projection);	
             this.orbiting = true;
             
             while(this.imageScene.children.length > 0){ 
