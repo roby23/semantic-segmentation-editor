@@ -25,6 +25,8 @@ export default class SseImagesPreview extends SseToolbar {
             return null;
         if (this.state.data == undefined)
             return <div></div>
+        if (this.state.data.error)
+            return <div></div>
         return (    
             <div className="sse-class-chooser vflex no-shrink scroller">
                 <div className="hflex wrap w100 h100">

@@ -180,16 +180,22 @@ Meteor.methods({
     'cloudData'(path) {
                 
         var m = THREE.Matrix4();
+        var error = false;
 
         const imagesData = path => {
             var bundlerFileName = parse(basename(decodeURIComponent(path))).name + ".out";
             var bundlerFilePath = join(config.imagesFolder, dirname(decodeURIComponent(path)), bundlerFileName); 
 
+            var res = [];
+
+            if (!existsSync(bundlerFilePath)) {
+                error = true;
+                return res;
+            }
+
             var lines = readFileSync(bundlerFilePath, 'utf8').toString().split("\n");
 
-            var imagesCount = lines[1].split(' ')[0];
-            
-            var res = [];
+            var imagesCount = lines[1].split(' ')[0];            
 
             for(i = 2; i < imagesCount * 5; i += 5) {
                 var focal = lines[i].split(' ')[0];
@@ -249,14 +255,25 @@ Meteor.methods({
             };
         };
 
-        const getImages = source =>
-            readdirSync(source).map(name => join(source, name)).filter(isImage);
+        const getImages = source => {
+            if(existsSync(source))
+            {
+                return readdirSync(source).map(name => join(source, name)).filter(isImage);
+            }
+            else
+            {   
+                error = true;
+                return [];
+            }
+        }
 
         const folderSlash = path ? dirname(decodeURIComponent(path)).substring(1) + "/" : "/";
         const leaf = join(config.imagesFolder, dirname(decodeURIComponent(path)), 'images');
+
         const images = getImages(leaf);
 
         const res = {
+            error: error,
             images: images.map(getImageDesc),
             imagesCount: images.length
         };

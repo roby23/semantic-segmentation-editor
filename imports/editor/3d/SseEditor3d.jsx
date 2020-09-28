@@ -583,10 +583,10 @@ export default class SseEditor3d extends React.Component {
 
             var projection = new THREE.Matrix4();
 
-            // var ppx = image.width / 2.0;
-            // var ppy = image.height / 2.0;
-            var ppx = 1520.4402005210805;
-            var ppy = 1000.8704349121531;
+            var ppx = image.width / 2.0;
+            var ppy = image.height / 2.0;
+            // var ppx = 1520.4402005210805;
+            // var ppy = 1000.8704349121531;
 
             projection.set(
                 2.0 * data.focal / image.width, 0, 0, 0, 
@@ -2284,8 +2284,10 @@ export default class SseEditor3d extends React.Component {
             this.meta.sodName = serverMeta.sodName;
             this.sendMsg("active-sod-name", {value: this.meta.sodName});
         } else {
-            this.meta.socName = this.activeSoc.name;
-            this.meta.sodName = this.activeSod.name;
+            if (this.activeSoc)
+                this.meta.socName = this.activeSoc.name;
+            if (this.activeSod)
+                this.meta.sodName = this.activeSod.name;
         }
 
         this.sendMsg("currentSample", {data: this.meta});
