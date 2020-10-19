@@ -228,6 +228,7 @@ Meteor.methods({
 
             return res;
         };
+        
         const isImage = source => {
             const stat = lstatSync(source);
             return (stat.isFile() || stat.isSymbolicLink()) &&
@@ -242,8 +243,8 @@ Meteor.methods({
 
         const data = imagesData(path);
 
-        const getImageDesc = path => {
-            var index = parseInt(parse(basename(decodeURIComponent(path))).name);
+        const getImageDesc = (path, index) => {
+            //var index = parseInt(parse(basename(decodeURIComponent(path))).name);
             var url = (folderSlash ? folderSlash : "") + "images/" + basename(path)
             var dimensions = imageSize(join(config.imagesFolder, url));            
             return {
