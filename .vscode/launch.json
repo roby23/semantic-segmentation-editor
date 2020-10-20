@@ -6,8 +6,7 @@
             "request": "launch",
             "name": "Meteor: Chrome",
             "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}",
-            "outputCapture": "std"
+            "webRoot": "${workspaceFolder}"
         },
         {
             "type": "node",
