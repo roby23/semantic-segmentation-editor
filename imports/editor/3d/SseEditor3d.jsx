@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {BoxHelper} from './GradientBoxHelper';
 import SseGlobals from "../../common/SseGlobals";
 import SsePCDLoader from "./SsePCDLoader";
+import SsePLYLoader from "./SsePLYLoader";
 import OrbitControls from "./tools/OrbitControls"
 import Sse3dLassoSelector from "./tools/Sse3dLassoSelector";
 import PointInPoly from "point-in-polygon-extended";
@@ -32,6 +33,7 @@ export default class SseEditor3d extends React.Component {
         super();
         SseMsg.register(this);
         new SsePCDLoader(THREE);
+        new SsePLYLoader(THREE);
         new OrbitControls(THREE);
 
         this.autoFilterMode = false;
@@ -2239,6 +2241,21 @@ export default class SseEditor3d extends React.Component {
 
     }
 
+    loadPLYFile(fileUrl) {
+        setTimeout(()=>
+        this.sendMsg("bottom-right-label", {message: "Loading PLY data..."}), 1);
+        const loader = new THREE.PLYLoader();
+        return new Promise((res) => {
+            loader.load(fileUrl, (arg) => {
+
+                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage);
+                Object.assign(this.meta, {header: arg.header});
+                res();
+            });
+        });
+
+    }
+
     saveBinaryLabels() {
         this.dataManager.saveBinaryFile(this.props.imageUrl + ".labels", this.cloudData.map(x => x.classIndex));
     }
@@ -2293,6 +2310,51 @@ export default class SseEditor3d extends React.Component {
         this.sendMsg("currentSample", {data: this.meta});
         const fileUrl = SseGlobals.getFileUrl(this.props.imageUrl);
 
+        if(fileUrl.endsWith(".ply"))
+        {
+
+            this.loadPLYFile(fileUrl).then(() => {
+                this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
+                this.sendMsg("bottom-right-label", {message: "Loading labels..."});
+
+                this.dataManager.loadBinaryFile(this.props.imageUrl + ".labels").then(result => {
+                    this.sendMsg("bottom-right-label", {message: "Loading damages..."});
+                    this.labelArray = result;
+                    this.maxClassIndex = 0;
+                    for (var i = 0; i < this.labelArray.length; i++) {
+                        if (this.labelArray[i] > this.maxClassIndex) {
+                            this.maxClassIndex = this.labelArray[i];
+                        }
+                    }
+                    this.sendMsg("maximum-classIndex", {value: this.maxClassIndex});
+                }, 
+                () => { this.saveBinaryLabels(); }).then(() => {
+                    this.dataManager.loadBinaryFile(this.props.imageUrl + ".damages").then(result => {
+                            this.sendMsg("bottom-right-label", {message: "Loading objects..."});
+                            this.damageArray = result;
+                            this.maxDamageIndex = 0;
+                            for (var i = 0; i < this.damageArray.length; i++) {
+                                if (this.damageArray[i] > this.maxDamageIndex) {                            
+                                    this.maxDamageIndex = this.damageArray[i];
+                                }
+                            }
+                            this.sendMsg("maximum-damageIndex", {value: this.maxDamageIndex});
+                        }, 
+                        () => { this.saveBinaryDamages(); }).then(() => {
+                            this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
+                                if (!result.forEach)
+                                    result = undefined;
+                                this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray).then( ()=> {
+                                    this.initDone();
+                                });
+                            }, 
+                            () => { this.initDone(); });
+                        });
+                    });
+                }); 
+        }
+        else 
+        {
         this.loadPCDFile(fileUrl).then(() => {
             this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
             this.sendMsg("bottom-right-label", {message: "Loading labels..."});
@@ -2332,5 +2394,6 @@ export default class SseEditor3d extends React.Component {
                     });
                 });
             }); 
+        }
     }
 }

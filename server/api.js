@@ -4,6 +4,7 @@ import {basename} from "path";
 import {readFile} from "fs";
 import * as THREE from 'three';
 import SsePCDLoader from "../imports/editor/3d/SsePCDLoader";
+import SsePLYLoader from "../imports/editor/3d/SsePLYLoader";
 
 WebApp.connectHandlers.use("/api/json", generateJson);
 WebApp.connectHandlers.use("/api/pcdtext", generatePCDOutput.bind({fileMode: false}));
@@ -12,6 +13,7 @@ WebApp.connectHandlers.use("/api/listing", imagesListing);
 
 const {imagesFolder, pointcloudsFolder, setsOfClassesMap} = configurationFile;
 new SsePCDLoader(THREE);
+new SsePLYLoader(THREE);
 
 function imagesListing(req, res, next) {
     const all = SseSamples.find({}, {

@@ -121,6 +121,7 @@ Meteor.methods({
                     extname(source).toLowerCase() == ".jpeg" ||
                     extname(source).toLowerCase() == ".jpg" ||
                     extname(source).toLowerCase() == ".pcd" ||
+                    extname(source).toLowerCase() == ".ply" ||
                     extname(source).toLowerCase() == ".png"
                 )
         };
@@ -228,7 +229,7 @@ Meteor.methods({
 
             return res;
         };
-        
+
         const isImage = source => {
             const stat = lstatSync(source);
             return (stat.isFile() || stat.isSymbolicLink()) &&
