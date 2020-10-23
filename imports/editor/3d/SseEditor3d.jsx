@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {BoxHelper} from './GradientBoxHelper';
 import SseGlobals from "../../common/SseGlobals";
 import SsePCDLoader from "./SsePCDLoader";
+import SsePLYLoader from "./SsePLYLoader";
 import OrbitControls from "./tools/OrbitControls"
 import Sse3dLassoSelector from "./tools/Sse3dLassoSelector";
 import PointInPoly from "point-in-polygon-extended";
@@ -32,6 +33,7 @@ export default class SseEditor3d extends React.Component {
         super();
         SseMsg.register(this);
         new SsePCDLoader(THREE);
+        new SsePLYLoader(THREE);
         new OrbitControls(THREE);
 
         this.autoFilterMode = false;
@@ -551,6 +553,9 @@ export default class SseEditor3d extends React.Component {
 
         this.onMsg("image-view-abort", () => {
             this.sendMsg("show-camera-controls");
+            while(this.imageScene.children.length > 0){ 
+                this.imageScene.remove(this.imageScene.children[0]); 
+            }
             this.centerView();
         });
 
@@ -582,7 +587,9 @@ export default class SseEditor3d extends React.Component {
 
             var ppx = image.width / 2.0;
             var ppy = image.height / 2.0;
-                
+            // var ppx = 1520.4402005210805;
+            // var ppy = 1000.8704349121531;
+
             projection.set(
                 2.0 * data.focal / image.width, 0, 0, 0, 
                 0, 2.0 * data.focal / image.height, 0, 0, 
@@ -620,8 +627,23 @@ export default class SseEditor3d extends React.Component {
             this.camera.position.set(-data.T.x, -data.T.y, -data.T.z);
             this.camera.setRotationFromQuaternion(r.inverse());
             this.camera.updateProjectionMatrix();   
+            this.camera.projectionMatrix.copy(projection);	
             this.orbiting = true;
             
+            while(this.imageScene.children.length > 0){ 
+                this.imageScene.remove(this.imageScene.children[0]); 
+            }
+
+            new THREE.TextureLoader().load(SseGlobals.getFileUrl(image.url), (texture) => {
+
+                var material = new THREE.MeshBasicMaterial( { map: texture, opacity: 0.75 } );
+
+                material.transparent = true;		
+                var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry( 2, 2, 1, 1 ), material);			
+
+                this.imageScene.add(plane);		
+            });                        
+
             // var direction = new THREE.Vector3(0, 0, 1);
             // var eye = new THREE.Vector3(-p.x, -p.y, -p.z);
             // var target = new THREE.Vector3(-p.x, -p.y, -p.z);
@@ -669,10 +691,13 @@ export default class SseEditor3d extends React.Component {
         this.grayIndices = new Set();
         this.frustrumIndices = new Set();
         const scene = this.scene = new THREE.Scene();
+        const imageScene = this.imageScene = new THREE.Scene();
 
         scene.background = new THREE.Color(0x111111);
+        imageScene.background = null;
 
         const camera = this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 10000);
+        const imageCamera = this.imageCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 1 );
 
         scene.add(camera);
 
@@ -680,12 +705,15 @@ export default class SseEditor3d extends React.Component {
 
         const rendererAttrs = {
             antialias: true,
+            alpha: true,
             canvas: this.canvas3d,
             powerPreference: "high-performance",
         };
 
         const renderer = this.renderer = new THREE.WebGLRenderer(rendererAttrs);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor( 0x000000, 0 );
+	    renderer.autoClear = false; // important!
         $(renderer.domElement).addClass("absoluteTopLeftZeroW100H100");
 
 
@@ -1401,7 +1429,10 @@ export default class SseEditor3d extends React.Component {
 
             this.clearCanvasSelection();
             this.clearCanvasMouse();
+            this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
+            this.renderer.clearDepth(); // important! clear the depth buffer
+            this.renderer.render(this.imageScene, this.imageCamera);
             if (this.mouse.dragged == 0)
                 this.orbiting = false;
             this.pixelProjectionRequestTime = time;
@@ -1426,7 +1457,11 @@ export default class SseEditor3d extends React.Component {
                 this.paintScene();
             }
 
+            this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
+
+            this.renderer.clearDepth(); // important! clear the depth buffer
+            this.renderer.render(this.imageScene, this.imageCamera);
         }
     }
 
@@ -1937,6 +1972,11 @@ export default class SseEditor3d extends React.Component {
             //this.displayAll();
         }
 
+        if (this.mouse.dragged < 4 && (ev.button != 1 && !this.ctrlDown)) {
+            this.clearSelection();
+            //this.displayAll();
+        }
+
         if (this.mouse.dragged < 4 && this.pendingOrientationArrow) {
             const av = this.pendingOrientationArrow.arrowDirection;
             if (this.pendingUpVector) {
@@ -2206,6 +2246,21 @@ export default class SseEditor3d extends React.Component {
 
     }
 
+    loadPLYFile(fileUrl) {
+        setTimeout(()=>
+        this.sendMsg("bottom-right-label", {message: "Loading PLY data..."}), 1);
+        const loader = new THREE.PLYLoader();
+        return new Promise((res) => {
+            loader.load(fileUrl, (arg) => {
+
+                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage);
+                Object.assign(this.meta, {header: arg.header});
+                res();
+            });
+        });
+
+    }
+
     saveBinaryLabels() {
         this.dataManager.saveBinaryFile(this.props.imageUrl + ".labels", this.cloudData.map(x => x.classIndex));
     }
@@ -2251,13 +2306,60 @@ export default class SseEditor3d extends React.Component {
             this.meta.sodName = serverMeta.sodName;
             this.sendMsg("active-sod-name", {value: this.meta.sodName});
         } else {
-            this.meta.socName = this.activeSoc.name;
-            this.meta.sodName = this.activeSod.name;
+            if (this.activeSoc)
+                this.meta.socName = this.activeSoc.name;
+            if (this.activeSod)
+                this.meta.sodName = this.activeSod.name;
         }
 
         this.sendMsg("currentSample", {data: this.meta});
         const fileUrl = SseGlobals.getFileUrl(this.props.imageUrl);
 
+        if(fileUrl.endsWith(".ply"))
+        {
+
+            this.loadPLYFile(fileUrl).then(() => {
+                this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
+                this.sendMsg("bottom-right-label", {message: "Loading labels..."});
+
+                this.dataManager.loadBinaryFile(this.props.imageUrl + ".labels").then(result => {
+                    this.sendMsg("bottom-right-label", {message: "Loading damages..."});
+                    this.labelArray = result;
+                    this.maxClassIndex = 0;
+                    for (var i = 0; i < this.labelArray.length; i++) {
+                        if (this.labelArray[i] > this.maxClassIndex) {
+                            this.maxClassIndex = this.labelArray[i];
+                        }
+                    }
+                    this.sendMsg("maximum-classIndex", {value: this.maxClassIndex});
+                }, 
+                () => { this.saveBinaryLabels(); }).then(() => {
+                    this.dataManager.loadBinaryFile(this.props.imageUrl + ".damages").then(result => {
+                            this.sendMsg("bottom-right-label", {message: "Loading objects..."});
+                            this.damageArray = result;
+                            this.maxDamageIndex = 0;
+                            for (var i = 0; i < this.damageArray.length; i++) {
+                                if (this.damageArray[i] > this.maxDamageIndex) {                            
+                                    this.maxDamageIndex = this.damageArray[i];
+                                }
+                            }
+                            this.sendMsg("maximum-damageIndex", {value: this.maxDamageIndex});
+                        }, 
+                        () => { this.saveBinaryDamages(); }).then(() => {
+                            this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
+                                if (!result.forEach)
+                                    result = undefined;
+                                this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray).then( ()=> {
+                                    this.initDone();
+                                });
+                            }, 
+                            () => { this.initDone(); });
+                        });
+                    });
+                }); 
+        }
+        else 
+        {
         this.loadPCDFile(fileUrl).then(() => {
             this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
             this.sendMsg("bottom-right-label", {message: "Loading labels..."});
@@ -2297,5 +2399,6 @@ export default class SseEditor3d extends React.Component {
                     });
                 });
             }); 
+        }
     }
 }

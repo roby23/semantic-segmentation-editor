@@ -2,7 +2,7 @@ version: '3'
 
 services:
   app:
-    image: dmandrioli/semantic-segmentation-editor
+    image: semantic-segmentation-editor:latest
     volumes:
       - "${SSE_IMAGES}:/root/sse-images:rw"
     ports:

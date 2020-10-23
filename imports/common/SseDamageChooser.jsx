@@ -171,8 +171,8 @@ export default class SseDamageChooser extends SseToolbar {
         const smallIconSelected = {width: "25px", height: "25px", color: "red"};
         return (
 
-            <div className="sse-class-chooser vflex scroller"
-                 style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
+            <div className="sse-class-chooser vflex scroller" style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
+                <div  className="hflex flex-justify-content-center flex-align-items-center" style={{"height": "40px"}}>Degrado</div>
                 {this.state.sod.descriptors.map((objDesc, idx) => {
                     const isSelected = objDesc.damageIndex == this.state.activeDamageIndex;
                     return <div className="hflex flex-align-items-center no-shrink" key={objDesc.label}>

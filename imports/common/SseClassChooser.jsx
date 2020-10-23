@@ -171,8 +171,8 @@ export default class SseClassChooser extends SseToolbar {
         const smallIconSelected = {width: "25px", height: "25px", color: "red"};
         return (
 
-            <div className="sse-class-chooser vflex scroller"
-                 style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
+            <div className="sse-class-chooser vflex scroller" style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
+                <div  className="hflex flex-justify-content-center flex-align-items-center" style={{"height": "40px"}}>Materiale</div>
                 {this.state.soc.descriptors.map((objDesc, idx) => {
                     const isSelected = objDesc.classIndex == this.state.activeClassIndex;
                     return <div className="hflex flex-align-items-center no-shrink" key={objDesc.label}>
@@ -215,7 +215,7 @@ export default class SseClassChooser extends SseToolbar {
                             </div> : null}
                     </div>
                 })}
-                <Button onClick={() => this.initSetChange()}>Classes Sets</Button>
+                {/* <Button onClick={() => this.initSetChange()}>Classes Sets</Button> */}
                 {this.renderDialog()}
             </div>
         );

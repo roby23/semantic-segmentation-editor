@@ -77,7 +77,7 @@ class SseBottomBar extends React.Component {
                 <div className="hflex">
                     <div className="grow hflex flex-align-items-center children-margin">
                         <SseText msgKey="status"/>
-                        <button className="sse-button" onClick={() => this.handleOpen()}>Set Tags</button>
+                        {/* <button className="sse-button" onClick={() => this.handleOpen()}>Set Tags</button> */}
 
                         {this.state.tags.map(t => (<div key={t} className="sse-tag">{t}</div>))}
                     </div>
