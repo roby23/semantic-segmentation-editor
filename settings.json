@@ -215,8 +215,28 @@
       "name": "Danni", 
       "objects": [
         {"label": "Nessuno", "color": "#FFFFFF"},
-        {"label": "Muffa", "color": "#804080"},
-        {"label": "Umidita'", "color": "#F423E8"}
+        {"label": "Alterazione cromatica"},
+        {"label": "Alveolizzazione"},
+        {"label": "Concrezione"},
+        {"label": "Crosta"},
+        {"label": "Deposito superficiale"},
+        {"label": "Disgregazione"},
+        {"label": "Distacco"},
+        {"label": "Efflorescenza"},
+        {"label": "Erosione"},
+        {"label": "Esfolliazione"},
+        {"label": "Fessurazione"},
+        {"label": "Incrostazione"},
+        {"label": "Macchia"},
+        {"label": "Mancanza"},
+        {"label": "Patina"},
+        {"label": "Patina biologica"},
+        {"label": "Pellicola"},
+        {"label": "Pitting"},
+        {"label": "Polverizzazione"},
+        {"label": "Vegetazione"},
+        {"label": "Rigonfiamento"},
+        {"label": "Scagliatura"}
       ]
     }
   ]

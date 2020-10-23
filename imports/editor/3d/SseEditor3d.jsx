@@ -636,7 +636,7 @@ export default class SseEditor3d extends React.Component {
 
             new THREE.TextureLoader().load(SseGlobals.getFileUrl(image.url), (texture) => {
 
-                var material = new THREE.MeshBasicMaterial( { map: texture, opacity: 0.5 } );
+                var material = new THREE.MeshBasicMaterial( { map: texture, opacity: 0.75 } );
 
                 material.transparent = true;		
                 var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry( 2, 2, 1, 1 ), material);			
@@ -1968,6 +1968,11 @@ export default class SseEditor3d extends React.Component {
         }
 
         if (this.mouse.dragged < 4 && this.mouseTargetIndex == undefined && (ev.button != 1 && !this.ctrlDown)) {
+            this.clearSelection();
+            //this.displayAll();
+        }
+
+        if (this.mouse.dragged < 4 && (ev.button != 1 && !this.ctrlDown)) {
             this.clearSelection();
             //this.displayAll();
         }
