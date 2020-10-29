@@ -664,11 +664,11 @@ export default class SseEditor3d extends React.Component {
     }
 
     downloadFile() {
-        window.open("/api/pcdfile" + this.props.imageUrl, "_blank");
+        window.open("/api/plyfile" + this.props.imageUrl, "_blank");
     }
 
     downloadText() {
-        window.open("/api/pcdtext" + this.props.imageUrl, "_blank");
+        window.open("/api/plytext" + this.props.imageUrl, "_blank");
     }
 
     init() {

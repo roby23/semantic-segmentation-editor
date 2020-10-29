@@ -8,7 +8,9 @@ import SsePLYLoader from "../imports/editor/3d/SsePLYLoader";
 
 WebApp.connectHandlers.use("/api/json", generateJson);
 WebApp.connectHandlers.use("/api/pcdtext", generatePCDOutput.bind({fileMode: false}));
+WebApp.connectHandlers.use("/api/plytext", generatePLYOutput.bind({fileMode: false}));
 WebApp.connectHandlers.use("/api/pcdfile", generatePCDOutput.bind({fileMode: true}));
+WebApp.connectHandlers.use("/api/plyfile", generatePLYOutput.bind({fileMode: true}));
 WebApp.connectHandlers.use("/api/listing", imagesListing);
 
 const {imagesFolder, pointcloudsFolder, setsOfClassesMap} = configurationFile;
@@ -136,6 +138,124 @@ function generatePCDOutput(req, res, next) {
                                 out += obj.x + " " + obj.y + " " + obj.z + " ";
                                 if (hasRgb) {
                                     out += rgb2int(obj.rgb) + " ";
+                                }
+                                out += labels[position] + " ";
+                                out += damages[position] + " ";
+                                const assignedObject = objectByPointIndex.get(position);
+                                if (assignedObject != undefined)
+                                    out += assignedObject;
+                                else
+                                    out += "-1";
+                                out += "\n";
+                                res.write(out);
+                                out = "";
+                                break;
+                        }
+                    });
+
+                    res.end()
+                })
+            })
+        });
+    });
+}
+
+function generatePLYOutput(req, res, next) {
+    const plyFile = imagesFolder + decodeURIComponent(req.url);
+    const fileName = basename(plyFile);
+    const labelFile = pointcloudsFolder + decodeURIComponent(req.url) + ".labels";
+    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";
+    const objectFile = pointcloudsFolder + decodeURIComponent(req.url) + ".objects";
+
+    if (this.fileMode) {
+        res.setHeader('Content-disposition', 'attachment; filename=DOC'.replace("DOC", fileName));
+        res.setHeader('Content-type', 'text/plain');
+        res.charset = 'UTF-8';
+    }
+
+    readFile(plyFile, (err, content) => {
+        if (err) {
+            res.end("Error while parsing PLY file.")
+        }
+
+        const loader = new THREE.PLYLoader(true);
+        const plyContent = loader.parse(content.buffer, "");
+        const hasRgb = plyContent.rgb.length > 0;
+        const head = plyContent.header;
+        const rgb2int = rgb => rgb[2] + 256 * rgb[1] + 256 * 256 * rgb[0];
+
+        let out = "ply\n";
+        out += "format ascii 1.0\n";
+        out += "element vertex " + (plyContent.position.length / 3) + "\n";
+        out += "property float x\n";
+        out += "property float y\n";
+        out += "property float z\n";
+        
+        if (hasRgb)
+        {
+            out += "property uchar red\n";
+            out += "property uchar green\n";
+            out += "property uchar blue\n";
+        }
+        
+        out += "property float scalar_label\n";
+        out += "property float scalar_damage\n";
+        out += "property float scalar_object\n";
+
+        out += "end_header\n";
+
+        res.write(out);
+        
+        out = "";
+        readFile(labelFile, (labelErr, labelContent) => {
+            if (labelErr) {
+                res.end("Error while parsing labels file.")
+            }
+            const labels = SseDataWorkerServer.uncompress(labelContent);
+
+            readFile(damageFile, (damageErr, damageContent) => {
+                if (damageErr) {
+                    res.end("Error while parsing damages file.")
+                }
+                const damages = SseDataWorkerServer.uncompress(damageContent);
+
+                readFile(objectFile, (objectErr, objectContent) => {
+                    let objectsAvailable = true;
+                    if (objectErr) {
+                        objectsAvailable = false;
+                    }
+
+                    const objectByPointIndex = new Map();
+
+                    if (objectsAvailable) {
+                        const objects = SseDataWorkerServer.uncompress(objectContent);
+                        objects.forEach((obj, objIndex) => {
+                            obj.points.forEach(ptIdx => {
+                                objectByPointIndex.set(ptIdx, objIndex);
+                            })
+                        });
+                    }
+                    let obj;
+
+                    plyContent.position.forEach((v, i) => {
+                        const position = Math.floor(i / 3);
+
+                        switch (i % 3) {
+                            case 0:
+                                if (hasRgb) {
+                                    obj = {rgb: plyContent.rgb[position], x: v};
+                                }else{
+                                    obj = {x: v};
+                                }
+                                break;
+                            case 1:
+                                obj.y = v;
+                                break;
+                            case 2:
+                                obj.z = v;
+                                out += obj.x.toFixed(6) + " " + obj.y.toFixed(6) + " " + obj.z.toFixed(6) + " ";
+                                if (hasRgb) {
+                                    out += obj.rgb[0] + " " + obj.rgb[1] + " " + obj.rgb[2] + " ";
                                 }
                                 out += labels[position] + " ";
                                 out += damages[position] + " ";
