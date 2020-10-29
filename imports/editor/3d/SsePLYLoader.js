@@ -492,7 +492,7 @@ export default class SsePLYLoader {
                 name = /([^\/]*)/.exec(name);
                 name = name[1].split('').reverse().join('');
                 mesh.name = url;
-                return {position: buffer.vertices, label: buffer.labels, header: PLYheader, rgb: buffer.rgb, damage: buffer.damages};
+                return {position: buffer.vertices, label: buffer.labels, header: PLYheader, rgb: buffer.rgb, damage: buffer.damages, indices: buffer.indices};
 			}
 		};
 	}

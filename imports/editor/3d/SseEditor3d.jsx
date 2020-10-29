@@ -1085,30 +1085,83 @@ export default class SseEditor3d extends React.Component {
 
     paintScene() {
         if (this.cloudData) {
-            if (this.displayRgb && this.rgbArray.length > 0) {
-                this.cloudData.forEach((pt, idx) => {
-                    var rgb = this.rgbArray[idx];
-                    this.setColor(idx, {red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255});
-                });
-                this.colorIsDirty = false;
-                this.cloudObject.geometry.attributes.color.needsUpdate = true;
-            } else {
-                this.cloudData.forEach((pt, idx) => {
-                    if (this.selection.has(idx)) {
-                        this.setColor(idx, {red: 1, green: 0});
-                    } else if (this.grayIndices.has(idx)) {
+
+            this.cloudData.forEach((pt, idx) => {
+                
+                if (this.selection.has(idx)) 
+                {
+                    this.setColor(idx, {red: 1, green: 0});
+                } 
+                else if (this.grayIndices.has(idx)) 
+                {
+                    if (this.displayRgb && this.rgbArray.length > 0)
+                    {
+                        var rgb = this.rgbArray[idx];
+                        this.setColor(idx, {red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255});
+                    }
+                    else
+                    {
                         this.setColor(idx, {red: .5, green: 0.5, blue: 0.5});
-                    } else {
-                        if (pt.damageIndex == 0){
+                    }
+                } 
+                else 
+                {
+                    let rgb = this.rgbArray[idx];
+
+                    if (pt.classIndex == 0 && pt.damageIndex == 0)
+                    {
+                        if (this.displayRgb && this.rgbArray.length > 0)
+                        {
+                            this.setColor(idx, {red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255});
+                        }
+                        else
+                        {
                             this.setColor(idx, this.classesDescriptors.byIndex[pt.classIndex]);
-                        } else{
-                            this.setColor(idx, this.damagesDescriptors.byIndex[pt.damageIndex]);
                         }
                     }
-                });
-                this.colorIsDirty = false;
-                this.cloudObject.geometry.attributes.color.needsUpdate = true;
-            }
+                    else if (pt.damageIndex == 0)
+                    {
+                        let color = this.classesDescriptors.byIndex[pt.classIndex];
+
+                        if (this.displayRgb && this.rgbArray.length > 0)
+                        {
+                            let fgA = 0.3;
+                            let bgA = 0.7;
+                            let A = 1 - (1 - fgA) * (1 - bgA);
+                            let r = color.red * fgA / A + rgb[0] / 255 * bgA * (1 - fgA) / A;
+                            let g = color.green * fgA / A + rgb[1] / 255 * bgA * (1 - fgA) / A;
+                            let b = color.blue * fgA / A + rgb[2] / 255 * bgA * (1 - fgA) / A;
+                            this.setColor(idx, {red: r, green: g, blue: b});
+                        }
+                        else 
+                        {
+                            this.setColor(idx, color);
+                        }
+                    } 
+                    else
+                    {
+                        let color = this.damagesDescriptors.byIndex[pt.damageIndex];
+
+                        if (this.displayRgb && this.rgbArray.length > 0)
+                        {
+                            let fgA = 0.3;
+                            let bgA = 0.7;
+                            let A = 1 - (1 - fgA) * (1 - bgA);
+                            let r = color.red * fgA / A + rgb[0] / 255 * bgA * (1 - fgA) / A;
+                            let g = color.green * fgA / A + rgb[1] / 255 * bgA * (1 - fgA) / A;
+                            let b = color.blue * fgA / A + rgb[2] / 255 * bgA * (1 - fgA) / A;
+                            this.setColor(idx, {red: r, green: g, blue: b});
+                        }
+                        else 
+                        {
+                            this.setColor(idx, color);
+                        }
+                    }
+                }
+            });
+            this.colorIsDirty = false;
+            this.cloudObject.geometry.attributes.color.needsUpdate = true;
+           // }
         }
     }
 
@@ -1470,14 +1523,14 @@ export default class SseEditor3d extends React.Component {
         this.meta.rotationY = ry || 0;
         this.meta.rotationZ = rz || 0;
         this.cloudGeometry.rotateX(this.meta.rotationX).rotateY(this.meta.rotationY).rotateZ(this.meta.rotationZ);
-        this.display(this.objects, this.positionArray, this.labelArray, this.rgbArray, this.damageArray);
+        this.display(this.objects, this.positionArray, this.labelArray, this.rgbArray, this.damageArray, this.indicesArray);
         this.saveMeta();
     }
 
     resetRotation() {
         const {rotationX, rotationY, rotationZ} = this.meta;
         this.cloudGeometry.rotateZ(-rotationZ || 0).rotateY(-rotationY || 0).rotateX(-rotationX || 0);
-        this.display(undefined, this.positionArray, this.labelArray, this.rgbArray, this.damageArray);
+        this.display(undefined, this.positionArray, this.labelArray, this.rgbArray, this.damageArray, this.indicesArray);
         this.meta.rotationX = this.meta.rotationY = this.meta.rotationZ = 0;
         this.updateGlobalBox();
         this.invalidatePosition();
@@ -2055,18 +2108,24 @@ export default class SseEditor3d extends React.Component {
     }
 
     setupLight() {
-        let light = new THREE.PointLight(0xffffff, 1, 1000);
-        light.position.set(0, -50, 50);
-        this.scene.add(light);
-        light = new THREE.PointLight(0xffffff, 1, 100);
-        light.position.set(50, -50, 0);
-        this.scene.add(light);
-        light = new THREE.PointLight(0xffffff, 1, 100);
-        light.position.set(50, -50, 50);
-        this.scene.add(light);
-        light = new THREE.PointLight(0xffffff, 1, 100);
-        light.position.set(-50, -50, 50);
-        this.scene.add(light);
+        this.scene.add( new THREE.HemisphereLight( 0xffffff, 0xAAAAAA ) );
+
+        //addShadowedLight( 1, 1, 1, 0xffffff, 1.35 );
+        //addShadowedLight( 0.5, 1, - 1, 0xffaa00, 1 );
+
+        //let light = new THREE.AmbientLight( 0xffffff );
+        // let light = new THREE.PointLight(0xffffff, 1, 1000);
+        // light.position.set(0, -50, 50);
+        // this.scene.add(light);
+        // light = new THREE.PointLight(0xffffff, 1, 100);
+        // light.position.set(50, -50, 0);
+        // this.scene.add(light);
+        // light = new THREE.PointLight(0xffffff, 1, 100);
+        // light.position.set(50, -50, 50);
+        // this.scene.add(light);
+        // light = new THREE.PointLight(0xffffff, 1, 100);
+        // light.position.set(-50, -50, 50);
+        //this.scene.add(light);
     }
 
     notifySelectionChange() {
@@ -2123,7 +2182,7 @@ export default class SseEditor3d extends React.Component {
         }
     }
 
-    display(objectArray, positionArray, labelArray, rgbArray, damageArray) {
+    display(objectArray, positionArray, labelArray, rgbArray, damageArray, indicesArray) {
         return new Promise( (res, rej)=> {
             this.scene.remove(this.cloudObject);
             const geometry = this.geometry = new THREE.BufferGeometry();
@@ -2134,7 +2193,8 @@ export default class SseEditor3d extends React.Component {
             this.buildPointToObjectMap();
             this.labelArray = labelArray;
             this.damageArray = damageArray;
-            this.rgbArray = rgbArray;            
+            this.rgbArray = rgbArray;      
+            this.indicesArray = indicesArray;      
 
             positionArray.forEach((v, i) => {
                 switch (i % 3) {
@@ -2162,34 +2222,37 @@ export default class SseEditor3d extends React.Component {
                     });
                 }
             }
-            else{
-                if (labelArray) {                    
-                    labelArray.forEach((v, i) => {
-                        this.cloudData[i].classIndex = v;
-                        const rgb = this.activeSoc.colorForIndexAsRGBArray(v);
-                        colorArray.push(rgb[0], rgb[1], rgb[2]);
-                    });
-                }
-                if (damageArray) {
-                    colorArray = [];
-                    damageArray.forEach((v, i) => {
-                        this.cloudData[i].damageIndex = v;
-                        const rgb = this.activeSod.colorForIndexAsRGBArray(v);
-                        colorArray.push(rgb[0], rgb[1], rgb[2]);
-                    });
-                }
+            if (labelArray) {                    
+                labelArray.forEach((v, i) => {
+                    this.cloudData[i].classIndex = v;
+                    const rgb = this.activeSoc.colorForIndexAsRGBArray(v);
+                    colorArray.push(rgb[0], rgb[1], rgb[2]);
+                });
+            }
+            if (damageArray) {
+                colorArray = [];
+                damageArray.forEach((v, i) => {
+                    this.cloudData[i].damageIndex = v;
+                    const rgb = this.activeSod.colorForIndexAsRGBArray(v);
+                    colorArray.push(rgb[0], rgb[1], rgb[2]);
+                });
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positionArray, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colorArray, 3));
 
+            if (indicesArray.length > 0)
+            {
+                geometry.setIndex(indicesArray);
+            }
+
             geometry.computeBoundingSphere();
 
-            const material = new THREE.PointsMaterial({size: 2, vertexColors: THREE.VertexColors});
+            const material = indicesArray.length > 0 ? new THREE.MeshStandardMaterial( { vertexColors: THREE.VertexColors, flatShading: true, side: THREE.DoubleSide } ): new THREE.PointsMaterial({size: 2, vertexColors: THREE.VertexColors});
             material.sizeAttenuation = false;
 
             // build mesh
-            this.cloudObject = new THREE.Points(geometry, material);
+            this.cloudObject = indicesArray.length > 0 ? new THREE.Mesh( geometry, material ) : new THREE.Points(geometry, material);
 
             this.visibleIndices = new Set([...Array(this.cloudData.length).keys()]);
 
@@ -2238,7 +2301,7 @@ export default class SseEditor3d extends React.Component {
         return new Promise((res) => {
             loader.load(fileUrl, (arg) => {
 
-                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage);
+                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage, arg.indices);
                 Object.assign(this.meta, {header: arg.header});
                 res();
             });
@@ -2253,7 +2316,7 @@ export default class SseEditor3d extends React.Component {
         return new Promise((res) => {
             loader.load(fileUrl, (arg) => {
 
-                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage);
+                this.display(arg.object, arg.position, arg.label, arg.rgb, arg.damage, arg.indices);
                 Object.assign(this.meta, {header: arg.header});
                 res();
             });
@@ -2349,7 +2412,7 @@ export default class SseEditor3d extends React.Component {
                             this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
                                 if (!result.forEach)
                                     result = undefined;
-                                this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray).then( ()=> {
+                                this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray, this.indicesArray).then( ()=> {
                                     this.initDone();
                                 });
                             }, 
@@ -2391,7 +2454,7 @@ export default class SseEditor3d extends React.Component {
                         this.dataManager.loadBinaryFile(this.props.imageUrl + ".objects").then(result => {
                             if (!result.forEach)
                                 result = undefined;
-                            this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray).then( ()=> {
+                            this.display(result, this.positionArray, this.labelArray, this.rgbArray, this.damageArray, this.indicesArray).then( ()=> {
                                 this.initDone();
                             });
                         }, 
