@@ -384,7 +384,7 @@ export default class SsePCDLoader {
                 name = /([^\/]*)/.exec(name);
                 name = name[1].split('').reverse().join('');
                 mesh.name = url;
-                return {position, label, header: PCDheader, rgb, damage};
+                return {position, label, header: PCDheader, rgb, damage, indices: []};
             }
 
         };
