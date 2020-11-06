@@ -1341,8 +1341,14 @@ export default class SseEditor3d extends React.Component {
         if (intersects.length) {
             intersects.sort((a, b) => a.distanceToRay < b.distanceToRay ? -1 : 1);
             const closer = intersects[0];
-            if (this.mouseTargetIndex != closer.index) {
+            if (closer.index !== undefined && this.mouseTargetIndex != closer.index) {
                 this.mouseTargetIndex = closer.index;
+
+                this.highlightIndex(this.mouseTargetIndex);
+                SseGlobals.setCursor("pointer");
+            }
+            if (closer.faceIndex !== undefined && this.mouseTargetIndex != closer.faceIndex) {
+                this.mouseTargetIndex = closer.face.a;
 
                 this.highlightIndex(this.mouseTargetIndex);
                 SseGlobals.setCursor("pointer");

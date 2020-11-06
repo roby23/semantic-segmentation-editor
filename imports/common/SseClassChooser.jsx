@@ -184,7 +184,6 @@ export default class SseClassChooser extends SseToolbar {
                                 }}
                                 style={
                                     {
-
                                         "width": "100%",
                                         "minHeight": "20px",
                                         "margin": "1px",
@@ -195,7 +194,7 @@ export default class SseClassChooser extends SseToolbar {
                                     }}>
                             <div
                                 className="hflex flex-align-items-center w100">
-                                {this.getIcon(objDesc)}{objDesc.label}
+                                {this.getIcon(objDesc)}{objDesc.classIndex}.{objDesc.label}
                             </div>
                             <sup>{this.state.counters[objDesc.classIndex] > 0 ? this.state.counters[objDesc.classIndex] : ""}</sup>
                         </Button>
