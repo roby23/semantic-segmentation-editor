@@ -164,8 +164,7 @@ function generatePLYOutput(req, res, next) {
     const plyFile = imagesFolder + decodeURIComponent(req.url);
     const fileName = basename(plyFile);
     const labelFile = pointcloudsFolder + decodeURIComponent(req.url) + ".labels";
-    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";
-    const objectFile = pointcloudsFolder + decodeURIComponent(req.url) + ".objects";
+    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";    
 
     if (this.fileMode) {
         res.setHeader('Content-disposition', 'attachment; filename=DOC'.replace("DOC", fileName));
@@ -198,9 +197,8 @@ function generatePLYOutput(req, res, next) {
             out += "property uchar blue\n";
         }
         
-        out += "property float scalar_label\n";
+        out += "property float scalar_material\n";
         out += "property float scalar_damage\n";
-        out += "property float scalar_object\n";
 
         out += "end_header\n";
 
@@ -218,61 +216,39 @@ function generatePLYOutput(req, res, next) {
                     res.end("Error while parsing damages file.")
                 }
                 const damages = SseDataWorkerServer.uncompress(damageContent);
+                
+                let obj;
 
-                readFile(objectFile, (objectErr, objectContent) => {
-                    let objectsAvailable = true;
-                    if (objectErr) {
-                        objectsAvailable = false;
+                plyContent.position.forEach((v, i) => {
+                    const position = Math.floor(i / 3);
+
+                    switch (i % 3) {
+                        case 0:
+                            if (hasRgb) {
+                                obj = {rgb: plyContent.rgb[position], x: v};
+                            }else{
+                                obj = {x: v};
+                            }
+                            break;
+                        case 1:
+                            obj.y = v;
+                            break;
+                        case 2:
+                            obj.z = v;
+                            out += obj.x.toFixed(6) + " " + obj.y.toFixed(6) + " " + obj.z.toFixed(6) + " ";
+                            if (hasRgb) {
+                                out += obj.rgb[0] + " " + obj.rgb[1] + " " + obj.rgb[2] + " ";
+                            }
+                            out += labels[position] + " ";
+                            out += damages[position] + " ";                            
+                            out += "\n";
+                            res.write(out);
+                            out = "";
+                            break;
                     }
+                });
 
-                    const objectByPointIndex = new Map();
-
-                    if (objectsAvailable) {
-                        const objects = SseDataWorkerServer.uncompress(objectContent);
-                        objects.forEach((obj, objIndex) => {
-                            obj.points.forEach(ptIdx => {
-                                objectByPointIndex.set(ptIdx, objIndex);
-                            })
-                        });
-                    }
-                    let obj;
-
-                    plyContent.position.forEach((v, i) => {
-                        const position = Math.floor(i / 3);
-
-                        switch (i % 3) {
-                            case 0:
-                                if (hasRgb) {
-                                    obj = {rgb: plyContent.rgb[position], x: v};
-                                }else{
-                                    obj = {x: v};
-                                }
-                                break;
-                            case 1:
-                                obj.y = v;
-                                break;
-                            case 2:
-                                obj.z = v;
-                                out += obj.x.toFixed(6) + " " + obj.y.toFixed(6) + " " + obj.z.toFixed(6) + " ";
-                                if (hasRgb) {
-                                    out += obj.rgb[0] + " " + obj.rgb[1] + " " + obj.rgb[2] + " ";
-                                }
-                                out += labels[position] + " ";
-                                out += damages[position] + " ";
-                                const assignedObject = objectByPointIndex.get(position);
-                                if (assignedObject != undefined)
-                                    out += assignedObject;
-                                else
-                                    out += "-1";
-                                out += "\n";
-                                res.write(out);
-                                out = "";
-                                break;
-                        }
-                    });
-
-                    res.end()
-                })
+                res.end()                
             })
         });
     });

@@ -194,7 +194,7 @@ export default class SseDamageChooser extends SseToolbar {
                                     }}>
                             <div
                                 className="hflex flex-align-items-center w100">
-                                {this.getIcon(objDesc)}{objDesc.label}
+                                {this.getIcon(objDesc)}{objDesc.damageIndex}.{objDesc.label}
                             </div>
                             <sup>{this.state.counters[objDesc.damageIndex] > 0 ? this.state.counters[objDesc.damageIndex] : ""}</sup>
                         </Button>
