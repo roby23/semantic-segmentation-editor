@@ -105,7 +105,6 @@ export default class SseCameraToolbar extends SseToolbar {
                     {this.state.showCameraCommands ? this.renderCommand("viewLeftCommand"): null}
                     {this.state.showCameraCommands ? this.renderCommand("viewRightCommand"): null}
                     {this.state.showCameraCommands ? this.renderCommand("viewTopCommand"): null}
-                    {this.state.showCameraCommands ? this.renderCommand("orientationCommand") : null}
                 </div>
                 <div className="grow v group flex-justify-content-end">
                     {this.state.showRgbToggle ? this.renderCommand("rgbCommand") : null}

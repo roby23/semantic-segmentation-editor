@@ -1,0 +1,94 @@
+	-- customer
+	 |
+	 +-- <USER_01>
+	 | |
+	 | +-- <project_01>
+	 | | |
+	 | | +-- backup
+	 | | |
+	 | | +-- dense
+	 | | | |
+	 | | | +-- images
+	 | | |   |
+	 | | |   +-- <undist_image_folder_01>
+	 | | |   | 
+	 | | |   +-- <undist_image_folder_02>
+	 | | |
+	 | | +-- hidden_img
+	 | | |
+	 | | +-- images
+	 | | |
+	 | | +-- logs
+	 | | |
+	 | | +-- nvm
+	 | | |
+	 | | +-- pointcloud
+	 | | |
+	 | | +-- potree
+	 | | |
+	 | | +-- slam
+	 | | |
+	 | | +-- sparse
+	 | | |
+	 | | +-- static
+	 | | |
+	 | | +-- statistics
+	 | | |
+	 | | +-- thumbnails
+	 | |
+	 | +-- <project_02>
+	 | | |
+	 | | +-- ...
+	 | |
+	 | +-- <project_12>
+	 |   |
+	 |   +-- ...
+	 |
+	 +-- <USER_02>
+	 | |
+	 | +-- ...
+	 |
+	 +-- <USER_05>
+	   |
+	   +-- ...
+
+
+Questa e` la struttura delle cartelle per i vari utenti. Le cartelle che dovrebbero servire a te sono:
+
+	- dense : in questa cartella potrai trovare la nuvola sparsa e la mesh, rispettivamente fused.ply e mesh.ply. Oltre ai dati 3d trovi anche le immagini undistorted
+
+	- statistics : al suo interno puoi trovare il file "camere_info.json" con le informazioni reletive alle camere. Questo file e` strutturato nel modo seguente:
+
+	{
+		"<undist_image_folder>/<image_name>": [
+
+			[array di 4 valori float con informazioni di orientamento della camera],
+
+			[array di 3 valori float con informazioni sulla posizione della camera (x,y,z)],
+
+			stringa contenente il valore della focale,
+
+			[array di 2 valori float con la width e heigth dell'immagine]
+
+		],
+
+		...
+
+	}
+
+	Qui di seguito un esempio con due camere:
+
+	{
+		"video/000181.jpg": [
+			[0.9677747648185786, -0.2501584693584881, -0.02868543185852571, 0.0031449622657812215],
+			[-2.0272167710876463, 5.523832269999267, 1.4380837641502642],
+			"1686.99",
+			[1920, 1080]
+		],
+		"video/000297.jpg": [
+			[0.9569058572456065, -0.290240946299904, 0.00586390277110087, 0.007549046580746636],
+			[0.05904112891235351, 7.591362891636886, 2.1474046403915628],
+			"1686.99",
+			[1920, 1080]
+		]
+	}
