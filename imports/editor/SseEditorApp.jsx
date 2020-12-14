@@ -7,6 +7,19 @@ import $ from "jquery";
 
 class SseEditorApp extends React.Component {
 
+    serverCall(props) {
+
+        const params = props.match.params;
+    }
+
+    componentWillReceiveProps(props) {
+        this.serverCall(props);
+    }
+
+    componentDidMount() {
+        this.serverCall(this.props);
+    }
+
     render() {
         if (!this.props.subReady)
             return null;

@@ -1,0 +1,58 @@
+Ho utilizzato django.rest_framework per abilitare l'autenticazione tramite Token. https://www.django-rest-framework.org/api-guide/authentication/
+
+Ho creato una chiamata REST accessiblile solo se si utilizza il token corretto. Se il token e` corretto creo un utente temporaneo in django facendo il login con esso ritornando poi la pagina di Potree, lo username e il progetto da cui ricavero` i dati da mostrare.
+
+Tutte le altre chiamate REST sono protette da @login_required di django.contrib.auth.decorators.
+
+Per eliminare gli utenti temporanei ho aggiunto un task che viene eseguito ogni ora, attraverso Celery e Redis che controlla gli utenti non piu` attivi e gli elimina.
+
+
+############################################
+
+Per abilitare django.rest_framework ho aggiunto queste righe al file setting.py:
+
+	REST_FRAMEWORK = {
+	    'DEFAULT_AUTHENTICATION_CLASSES': [
+	        'rest_framework.authentication.TokenAuthentication',
+	    ],
+	    'DEFAULT_PERMISSION_CLASSES': [
+	        'rest_framework.permissions.IsAuthenticated',
+	    ],
+	}
+
+	INSTALLED_APPS = [
+    	...
+
+	    'rest_framework',
+	    'rest_framework.authtoken',
+
+	    ...
+	]
+
+
+All'interno di view.py ho aggiunto questo:
+
+	from rest_framework.authentication import TokenAuthentication
+	from rest_framework.permissions import IsAuthenticated
+	from rest_framework import viewsets
+	from rest_framework.decorators import api_view
+
+
+	# Mi sono poi creato una classe "rest_function()" con la funzione da proteggere
+
+
+	class rest_function(viewsets.ModelViewSet):
+	    authentication_classes = [TokenAuthentication]
+	    permission_classes = [IsAuthenticated]
+
+
+	    @api_view(('GET',))
+	    def open_potree_viewer(request):
+	    	...
+
+
+###########################################################
+
+Per generare il Token ad un determinato utente ho prima di tutto creato un superuser e poi ho utilizzato "python manage.py drf_create_token -r <username>" per generarlo.
+
+Per poter salvare tutte le modifiche fatte mi sono poi salvato il database e creato una funzione che ogni volta che esegui il docker-compose up ripristina le ultime modifiche.

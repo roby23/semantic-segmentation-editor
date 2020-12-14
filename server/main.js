@@ -111,6 +111,51 @@ Meteor.methods({
             SseProps.upsert({key: "tags"}, {key: "tags", value: Array.from(tags)});
         },
     */
+    'projects'(folder, pageIndex, pageLength)
+    {
+        const isDirectory = source => lstatSync(source).isDirectory();
+        const isProject  = source => lstatSync(source).isDirectory() && existsSync(join(source, "dense", "fused.ply"));
+
+        const getFolderDesc = (path) => {
+            return {
+                name: basename(path),
+                editUrl: "/edit/" + encodeURIComponent(folderSlash + join(basename(path), "dense", "fused.ply")),
+                url: (folderSlash ? "/" + folderSlash : "") + "" + basename(path)
+            }
+        };
+
+        const getDirectories = source =>
+            readdirSync(source).map(name => join(source, name)).filter(isProject).map(a => basename(a));
+
+        pageIndex = parseInt(pageIndex);
+        pageLength = parseInt(pageLength);
+        const folderSlash = folder ? decodeURIComponent(folder) + "/" : "/";
+        const leaf = join(config.imagesFolder, (folderSlash ? folderSlash : ""));
+
+        const existing = existsSync(leaf);
+
+        if (existing && !isDirectory(leaf)) {
+            return {error: leaf + " is a file but should be a folder. Check the documentation and your settings.json"};
+        }
+        if (!existing) {
+            return {error: leaf + " does not exists. Check the documentation and your settings.json"};
+        }
+
+        const dirs = getDirectories(leaf);
+
+        const res = {
+            folders: dirs.map(getFolderDesc)
+        };
+        
+        if (pageIndex * pageLength + pageLength < dirs.length) {
+            res.nextPage = `/browse/${pageIndex + 1}/${pageLength}/` + (encodeURIComponent(folder) || "");
+        }
+        if (pageIndex > 0) {
+            res.previousPage = `/browse/${pageIndex - 1}/${pageLength}/` + (encodeURIComponent(folder) || "");
+        }
+
+        return res;
+    },
     'images'(folder, pageIndex, pageLength) {
         const isDirectory = source => lstatSync(source).isDirectory();
         const isImage = source => {

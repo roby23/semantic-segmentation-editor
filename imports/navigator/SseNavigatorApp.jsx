@@ -33,7 +33,7 @@ class SseNavigatorApp extends React.Component {
             this.state.data.nextPage = this.state.data.previousPage = null;
             this.setState(this.state);
         }
-        Meteor.call("images", params.path, fi, ti, (err, res) => {
+        Meteor.call("projects", params.path, fi, ti, (err, res) => {
             this.setState({data: res});
             if (res) {
 
@@ -41,13 +41,6 @@ class SseNavigatorApp extends React.Component {
                 if (res.folders.length > 0) {
                     msg += res.folders.length + " folder";
                     if (res.folders.length > 1)
-                        msg += "s";
-                }
-                if (res.images.length > 0) {
-                    if (res.folders.length > 0)
-                        msg += ", ";
-                    msg += res.imagesCount + " image";
-                    if (res.imagesCount > 1)
                         msg += "s";
                 }
                 this.sendMsg("folderStats", {message: msg});
@@ -101,26 +94,14 @@ class SseNavigatorApp extends React.Component {
 
                         <div className="hflex wrap w100 h100">
                         {this.state.data.folders.map((p) =>
-                            (<Link key={p.url} to={p.url}>
-                                <div className="vflex flex-align-items-center sse-folder">
+                            (
+                                <div className="vflex flex-align-items-center sse-folder" onClick={() => this.startEditing(p)} key={SseGlobals.getFileUrl(p.url) + Math.random()}>
                                     <Folder />
-                                    <Typography align="center" noWrap
-                                    style={{width: "200px"}}>{p.name}</Typography>
+                                    <Typography align="center" noWrap style={{width: "200px"}}>{p.name}</Typography>
                                 </div>
-                            </Link>)
+                            )
                         )}
-                    </div>
-                    <div className="hflex wrap w100 h100">
-                        {this.state.data.images.map((image) =>
-                            (<div
-                                  onClick={() => this.startEditing(image)}
-                                  onDoubleClick={() => {this.startEditing(image)}}
-                                  key={SseGlobals.getFileUrl(image.url) + Math.random()}>
-                                <SseImageThumbnail image={image}
-                                                   annotated={this.props.urlMap.get(decodeURIComponent(image.url))}/>
-                            </div>)
-                        )}
-                    </div>
+                    </div>                    
 
                 </div>
             </MuiThemeProvider>
