@@ -1,7 +1,7 @@
 import { Meteor } from 'meteor/meteor';
 import React from 'react';
 import {Route, Router, Redirect, Switch} from 'react-router-dom';
-import createBrowserHistory from 'history/createBrowserHistory';
+import {createBrowserHistory} from 'history';
 import SseEditorApp from "../imports/editor/SseEditorApp";
 import SseNavigatorApp from "../imports/navigator/SseNavigatorApp";
 import SseAllAnnotated from "../imports/navigator/SseAllAnnotated";

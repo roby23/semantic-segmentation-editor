@@ -1,16 +1,13 @@
 import SseDataWorkerServer from "./SseDataWorkerServer";
 import configurationFile from "./config";
 import {basename} from "path";
-import {readFile} from "fs";
+import {readFile, writeFile} from "fs";
 import * as THREE from 'three';
 import SsePCDLoader from "../imports/editor/3d/SsePCDLoader";
 import SsePLYLoader from "../imports/editor/3d/SsePLYLoader";
 
 WebApp.connectHandlers.use("/api/json", generateJson);
-WebApp.connectHandlers.use("/api/pcdtext", generatePCDOutput.bind({fileMode: false}));
-WebApp.connectHandlers.use("/api/plytext", generatePLYOutput.bind({fileMode: false}));
-WebApp.connectHandlers.use("/api/pcdfile", generatePCDOutput.bind({fileMode: true}));
-WebApp.connectHandlers.use("/api/plyfile", generatePLYOutput.bind({fileMode: true}));
+WebApp.connectHandlers.use("/api/plyfile", saveLabelledPointCloud.bind({fileMode: true}));
 WebApp.connectHandlers.use("/api/listing", imagesListing);
 
 const {imagesFolder, pointcloudsFolder, setsOfClassesMap} = configurationFile;
@@ -247,9 +244,106 @@ function generatePLYOutput(req, res, next) {
                             break;
                     }
                 });
-
                 res.end()                
             })
         });
+    });
+}
+
+function saveLabelledPointCloud(req) {
+    const plyFile = imagesFolder + decodeURIComponent(req.url);
+    const fileName = basename(plyFile);
+    const labelFile = pointcloudsFolder + decodeURIComponent(req.url) + ".labels";
+    const damageFile = pointcloudsFolder + decodeURIComponent(req.url) + ".damages";    
+
+    readFile(plyFile, (err, content) => {
+        if (err) {
+            console.log("Error while parsing PLY file.")
+        }
+
+        const loader = new THREE.PLYLoader(true);
+        const plyContent = loader.parse(content.buffer, "");
+        const hasRgb = plyContent.rgb.length > 0;
+        const head = plyContent.header;
+        const rgb2int = rgb => rgb[2] + 256 * rgb[1] + 256 * 256 * rgb[0];        
+
+        readFile(labelFile, (labelErr, labelContent) => {
+            if (labelErr) {
+                console.log("Error while parsing labels file.")
+            }
+            const labels = SseDataWorkerServer.uncompress(labelContent);
+
+            readFile(damageFile, (damageErr, damageContent) => {
+                if (damageErr) {
+                    console.log("Error while parsing damages file.")
+                }
+                const damages = SseDataWorkerServer.uncompress(damageContent);
+                
+                let obj;
+                let content = "";
+                let vertexNumber = 0;
+
+                plyContent.position.forEach((v, i) => {
+                    const position = Math.floor(i / 3);
+                    
+                    if (labels[position] != 0)
+                    {
+                        vertexNumber++;
+
+                        switch (i % 3) {
+                            case 0:
+                                if (hasRgb) {
+                                    obj = {rgb: plyContent.rgb[position], x: v};
+                                }else{
+                                    obj = {x: v};
+                                }
+                                break;
+                            case 1:
+                                obj.y = v;
+                                break;
+                            case 2:
+                                obj.z = v;
+                                content += obj.x.toFixed(6) + " " + obj.y.toFixed(6) + " " + obj.z.toFixed(6) + " ";
+                                if (hasRgb) {
+                                    content += obj.rgb[0] + " " + obj.rgb[1] + " " + obj.rgb[2] + " ";
+                                }
+                                content += labels[position] + " ";
+                                content += damages[position] + " ";                            
+                                content += "\n";
+                                break;
+                        }
+                    }
+                });
+
+                let out = "ply\n";
+                out += "format ascii 1.0\n";
+                out += "element vertex " + (vertexNumber / 3) + "\n";
+                out += "property float x\n";
+                out += "property float y\n";
+                out += "property float z\n";
+                
+                if (hasRgb)
+                {
+                    out += "property uchar red\n";
+                    out += "property uchar green\n";
+                    out += "property uchar blue\n";
+                }
+                
+                out += "property float scalar_material\n";
+                out += "property float scalar_damage\n";
+
+                out += "end_header\n";
+
+                out += content;
+
+                writeFile(plyFile + ".labelled.ply", out, function (err) {
+                    if (err){
+                        return console.log(err);
+                    }
+        
+                    console.log('Saved ply file.');
+                });             
+            })
+        });        
     });
 }

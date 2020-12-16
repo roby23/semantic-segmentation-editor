@@ -22,7 +22,7 @@
     "start": "meteor --settings settings.json --production"
   },
   "dependencies": {
-    "@babel/runtime": "7.7.6",
+    "@babel/runtime": "^7.7.6",
     "@material-ui/core": "1.5.1",
     "@material-ui/icons": "1.1.0",
     "@tweenjs/tween.js": "17.2.0",
@@ -39,7 +39,7 @@
     "hull.js": "0.2.10",
     "image-size": "^0.8.3",
     "indexof": "0.0.1",
-    "jquery": "3.5.1",
+    "jquery": "^3.5.1",
     "lineclip": "1.1.5",
     "mdi-material-ui": "5.1.1",
     "mousetrap": "1.6.2",

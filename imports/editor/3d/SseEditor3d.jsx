@@ -19,7 +19,6 @@ import PolyBool from "polybooljs";
 import lineclip from "lineclip";
 import SseMsg from "../../common/SseMsg";
 import $ from "jquery";
-import { Tree } from 'mdi-material-ui';
 
 const PI = Math.PI;
 const DOUBLEPI = PI * 2;
@@ -89,39 +88,6 @@ export default class SseEditor3d extends React.Component {
         };
 
         this.cameraTween = new TWEEN.Tween(this.cameraState).onStop(endCameraTween).onComplete(endCameraTween);
-
-
-
-
-        /*
-                const imports = [
-                    "/lib/js/examples/js/Octree.js",
-                    "/lib/js/geometries/ConvexGeometry.js",
-                    "/lib/js/renderers/CanvasRenderer.js",
-                    "/lib/js/Detector.js",
-                    "/lib/js/QuickHull.js"];
-
-                let loadedCount = imports.length;
-                const loadDep = (result) => {
-                    if (result) {
-                        eval(result.content);
-                        loadedCount--;
-                        if (loadedCount === 0) {
-                            this.init();
-                        }
-                    }
-                };
-
-                imports.forEach(u =>
-                    HTTP.call("GET", u,
-                        null, (error, result) => {
-                            if (error)
-                                console.log(error);
-                            else
-                                loadDep(result);
-
-                        }));
-        */
     }
 
     render() {
@@ -561,8 +527,8 @@ export default class SseEditor3d extends React.Component {
 
         this.onMsg("tagsChanged", () => this.saveAll());
 
-        this.onMsg("downloadFile", () => this.downloadFile());
-        this.onMsg("downloadText", () => this.downloadText());
+        this.onMsg("saveLabelledPointCloud", () => this.saveLabelledPointCloud());
+        
         this.onMsg("color-boost", (arg => {
             this.colorBoost = arg.value;
             this.invalidateColor();
@@ -663,22 +629,13 @@ export default class SseEditor3d extends React.Component {
         this.canvasContainer.removeEventListener("wheel", this.mouseWheel.bind(this), false);
     }
 
-    downloadFile() {
-        window.open("/api/plyfile" + this.props.imageUrl, "_blank");
+    saveLabelledPointCloud() {
+        const oReq = new XMLHttpRequest();
+        oReq.open("GET", "/api/plyfile" + this.props.imageUrl, true);
+        oReq.send();
     }
 
-    downloadText() {
-        window.open("/api/plytext" + this.props.imageUrl, "_blank");
-    }
-
-    init() {
-        /*
-        THREE.Vector3.prototype.toString = function () {
-            const s = (n) => Math.round(n * 100) / 100;
-
-            return "(" + s(this.x) + ", " + s(this.y) + ", " + s(this.z) + ")";
-        };
-        */
+    init() {       
         this.canvas3d = $("#canvas3d").get(0);
         this.canvasSelection = $("#canvasSelection").get(0);
         this.contextSelection = this.canvasSelection.getContext("2d");

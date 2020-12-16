@@ -3,8 +3,8 @@ import React from 'react';
 import SseToolbar from "../../common/SseToolbar";
 import SseBranding from "../../common/SseBranding";
 import {
-    CircleOutline, FileDownloadOutline, Gesture, Minus, Plus, PlusMinus, Redo, SquareOutline,
-    Undo
+    CircleOutline, Gesture, Minus, Plus, PlusMinus, Redo, SquareOutline,
+    Undo, ContentSaveOutline
 } from 'mdi-material-ui';
 
 export default class SseToolbar3d extends SseToolbar {
@@ -38,8 +38,7 @@ export default class SseToolbar3d extends SseToolbar {
 
         this.addCommand("undoCommand", "Undo", false, "Ctrl+Z", "undo", Undo, "disabled");
         this.addCommand("redoCommand", "Redo", false, "Ctrl+Y", "redo", Redo, "disabled");
-        this.addCommand("downloadTextCommand", "PLY Output as Text", false, "", "downloadText", FileDownloadOutline);
-        this.addCommand("downloadFileCommand", "PLY Output as File", false, "", "downloadFile", FileDownloadOutline);
+        this.addCommand("saveDataCommand", "Save current state", false, "", "saveLabelledPointCloud", ContentSaveOutline);
         this.sendMsg("selector");
         this.sendMsg("selection-mode-add");
     }
@@ -79,10 +78,9 @@ export default class SseToolbar3d extends SseToolbar {
                     </div>
                 </div>
                 <div className="vflex">
-                    <div className="tool-title">PLY Output</div>
+                    <div className="tool-title">Save Data</div>
                     <div className="hflex">
-                        {this.renderCommand("downloadTextCommand")}
-                        {this.renderCommand("downloadFileCommand")}
+                        {this.renderCommand("saveDataCommand")}
                     </div>
                 </div>
             </div>
